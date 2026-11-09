@@ -17,6 +17,7 @@ import {
 import { Router } from './router.js';
 import { errorPage } from './views/error.js';
 import { registerCourseRoutes } from './courses.js';
+import { registerPlaybackRoutes, watchStateForPage } from './playback.js';
 
 export const RUN_FILENAME = 'run.json';
 const ALLOWED_HOSTNAMES = new Set(['127.0.0.1', 'localhost', '[::1]']);
@@ -118,9 +119,8 @@ export function createApp(options = {}) {
 
   registerCoreRoutes(app, { maintenanceToken });
   registerAuthRoutes(app, { demoAccounts, demoPassword: DEMO_PASSWORD });
-  registerCourseRoutes(app, {
-    watchState: (ctx) => (ctx.user ? { state: 'soon', message: '视频播放即将开放' } : { state: 'login' }),
-  });
+  registerCourseRoutes(app, { watchState: watchStateForPage });
+  registerPlaybackRoutes(app);
 
   function acquireLock() {
     const content = JSON.stringify({ pid: process.pid, url: null, token: maintenanceToken, startedAt: Date.now() });

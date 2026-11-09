@@ -161,6 +161,94 @@
     form.elements.username.focus();
   };
 
+  // ---------- 课程页：取得播放地址并播放 ----------
+  // 播放地址有效期很短。过期后浏览器再请求视频片段会失败，
+  // 这时静默申请新地址，并从当前进度继续播放。
+  pages.course = () => {
+    const player = document.querySelector('.player');
+    const button = player && player.querySelector('[data-action="watch"]');
+    if (!button) return;
+    const video = player.querySelector('video');
+    const message = document.getElementById('player-message');
+    const courseId = player.dataset.courseId;
+    const label = button.querySelector('span:last-child');
+    let grant = null;
+    let renewing = false;
+    let failures = 0;
+    let lastTime = 0;
+    let wantsPlay = false;
+
+    const requestGrant = () => api(`/api/courses/${courseId}/play`, { method: 'POST' });
+
+    function explain(error) {
+      if (error.status === 401) {
+        showMessage(message, '登录状态已失效，正在前往登录页…', 'danger');
+        window.setTimeout(() => {
+          window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+        }, 1200);
+        return;
+      }
+      showMessage(message, error.message, 'danger');
+    }
+
+    button.addEventListener('click', async () => {
+      setBusy(button, true);
+      label.textContent = '正在准备视频…';
+      showMessage(message, '');
+      try {
+        grant = await requestGrant();
+        video.src = grant.url;
+        video.hidden = false;
+        player.dataset.state = 'playing';
+        video.focus();
+        try {
+          await video.play();
+        } catch {
+          showMessage(message, '视频已就绪，请点击播放按钮开始观看。');
+        }
+      } catch (error) {
+        setBusy(button, false);
+        label.textContent = '开始观看';
+        explain(error);
+        button.focus();
+      }
+    });
+
+    video.addEventListener('timeupdate', () => {
+      if (video.currentTime > 0) lastTime = video.currentTime;
+    });
+    video.addEventListener('play', () => { wantsPlay = true; });
+    video.addEventListener('pause', () => { if (!renewing) wantsPlay = false; });
+    video.addEventListener('playing', () => {
+      failures = 0;
+      if (!message.classList.contains('callout-danger')) showMessage(message, '');
+    });
+
+    video.addEventListener('error', async () => {
+      if (!grant || renewing) return;
+      if (failures >= 2) {
+        showMessage(message, '视频加载失败，请刷新页面后重试。', 'danger');
+        return;
+      }
+      failures += 1;
+      renewing = true;
+      const resumeAt = Math.max(video.currentTime || 0, lastTime);
+      const resume = wantsPlay;
+      try {
+        grant = await requestGrant();
+        video.addEventListener('loadedmetadata', () => {
+          if (resumeAt > 0) video.currentTime = resumeAt;
+          if (resume) video.play().catch(() => {});
+        }, { once: true });
+        video.src = grant.url;
+      } catch (error) {
+        explain(error);
+      } finally {
+        renewing = false;
+      }
+    });
+  };
+
   document.addEventListener('DOMContentLoaded', () => {
     initLogout();
     const page = document.body.dataset.page;
