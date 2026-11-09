@@ -24,11 +24,31 @@ npm start
 | `student` | `123456` | 学员 |
 | `student2` | `123456` | 学员 |
 
-## 测试
+## 常用命令
 
-```sh
-npm test
-```
+| 命令 | 作用 |
+| --- | --- |
+| `npm start` | 启动服务 |
+| `npm test` | 运行测试（启动真实服务，用临时数据目录） |
+| `npm run backup` | 正常停服并备份数据库 |
+| `npm run migrate` | 服务停止时执行新的迁移 |
+| `npm run restore -- <备份文件>` | 服务停止时用备份替换数据库 |
+
+数据目录、端口和备份恢复见[运维说明](docs/operations.md)，接口与 curl 示例见 [HTTP 接口](docs/api.md)。
+
+## 代码结构
+
+| 位置 | 内容 |
+| --- | --- |
+| `src/app.js` | 应用生命周期、运行记录与请求处理 |
+| `src/auth.js` | 密码校验、会话、登录接口 |
+| `src/courses.js` | 课程目录、详情与管理 |
+| `src/playback.js` | 观看资格、播放地址签发与视频读取 |
+| `src/views/` | 服务端渲染的页面 |
+| `public/` | 样式与页面脚本 |
+| `migrations/` | 编号 SQL 迁移 |
+| `scripts/` | 迁移、备份、恢复与示例视频生成 |
+| `test/` | 集成测试与系统测试 |
 
 ## 课程起点
 
