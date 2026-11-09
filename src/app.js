@@ -57,7 +57,15 @@ export function readRunInfo(dataDir) {
   }
   let info = {};
   try { info = JSON.parse(text) || {}; } catch { /* 损坏的记录按已失效处理 */ }
-  return { pid: info.pid, url: info.url ?? null, token: info.token ?? null, startedAt: info.startedAt, file, alive: isProcessAlive(info.pid) };
+  return {
+    pid: info.pid,
+    url: info.url ?? null,
+    token: info.token ?? null,
+    task: info.task ?? null,
+    startedAt: info.startedAt,
+    file,
+    alive: isProcessAlive(info.pid),
+  };
 }
 
 // 先写临时文件再链接或改名，读者不会看到写了一半的运行记录。
@@ -70,6 +78,34 @@ function writeFileAtomic(file, content, { exclusive }) {
   } finally {
     rmSync(temp, { force: true });
   }
+}
+
+function busyMessage(info) {
+  if (info.task) return `这个数据目录正在${info.task}（进程 ${info.pid}），请等它完成后再试。`;
+  return `这个数据目录已有学堂在运行（进程 ${info.pid}${info.url ? `，${info.url}` : ''}）。\n`
+    + '请先在它的终端按 Ctrl+C 停止，或为新实例设置另一个 DATA_DIR。';
+}
+
+/**
+ * 独占数据目录：写入运行记录（服务写 url 与维护令牌，维护脚本写 task）。
+ * 记录属于已退出的进程时视为失效并清理；属于存活进程时抛出 StartupError。
+ */
+export function claimRunFile(dataDir, record) {
+  const file = runFilePath(dataDir);
+  let staleRemoved = false;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      writeFileAtomic(file, JSON.stringify(record), { exclusive: true });
+      return { staleRemoved, release: () => rmSync(file, { force: true }) };
+    } catch (error) {
+      if (error.code !== 'EEXIST') throw error;
+      const info = readRunInfo(dataDir);
+      if (info?.alive) throw new StartupError(busyMessage(info), { code: 'already_running' });
+      rmSync(file, { force: true });
+      staleRemoved = true;
+    }
+  }
+  throw new StartupError('无法创建运行记录，请稍后重试。');
 }
 
 function expectsJson(pathname) {
@@ -123,27 +159,9 @@ export function createApp(options = {}) {
   registerPlaybackRoutes(app);
 
   function acquireLock() {
-    const content = JSON.stringify({ pid: process.pid, url: null, token: maintenanceToken, startedAt: Date.now() });
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      try {
-        writeFileAtomic(runFile, content, { exclusive: true });
-        ownsLock = true;
-        return;
-      } catch (error) {
-        if (error.code !== 'EEXIST') throw error;
-        const info = readRunInfo(config.dataDir);
-        if (info?.alive) {
-          throw new StartupError(
-            `这个数据目录已有学堂在运行（进程 ${info.pid}${info.url ? `，${info.url}` : ''}）。\n`
-            + '请先在它的终端按 Ctrl+C 停止，或为新实例设置另一个 DATA_DIR。',
-            { code: 'already_running' },
-          );
-        }
-        rmSync(runFile, { force: true });
-        notices.push('已清理上次异常退出留下的运行记录。');
-      }
-    }
-    throw new StartupError('无法创建运行记录，请稍后重试。');
+    const claim = claimRunFile(config.dataDir, { pid: process.pid, url: null, token: maintenanceToken, startedAt: Date.now() });
+    ownsLock = true;
+    if (claim.staleRemoved) notices.push('已清理上次异常退出留下的运行记录。');
   }
 
   function prepareDatabase() {
