@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 SubLang International <https://sublang.ai>
+
+# 运行数据与备份（每个数据目录各自保存，不进入 Git）
+/data/
+/data-*/
+/backups/
+*.sqlite
+*.sqlite-*
+run.json
+
+# curl 示例保存的登录 cookie
+cookies.txt
+*.cookies.txt
+
+# 依赖与本机文件
+node_modules/
+.DS_Store
+*.log
