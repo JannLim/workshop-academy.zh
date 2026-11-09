@@ -1,0 +1,9 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- SPDX-FileCopyrightText: 2026 SubLang International <https://sublang.ai> -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 13 13" shape-rendering="crispEdges">
+  <path fill="#27063D" d="M2 1h10v12H2zM1 2h12v10H1z"/>
+  <path fill="#890FBC" d="M1 0h10v12H1zM0 1h12v10H0z"/>
+  <path fill="#FFFFFF" d="M5 2h1v6H5zM6 3h1v4H6zM7 4h1v2H7z"/>
+  <path fill="#5B0F84" d="M2 9h8v1H2z"/>
+  <path fill="#FFFFFF" d="M2 9h3v1H2z"/>
+</svg>

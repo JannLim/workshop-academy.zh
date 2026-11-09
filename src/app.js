@@ -1,0 +1,316 @@
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: 2026 SubLang International <https://sublang.ai>
+
+import { createServer } from 'node:http';
+import { randomBytes } from 'node:crypto';
+import { linkSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import {
+  applyMigrations, databaseFile, defaultMigrationsDir, migrationStatus, openDatabase, projectRoot,
+  resolveDataDir, MigrationError,
+} from './db.js';
+import { seedIfNeeded } from './seed.js';
+import {
+  HttpError, applySecurityHeaders, constantTimeEqual, isJsonRequest, redirect, sendHtml, sendJson, serveStatic,
+} from './http.js';
+import { Router } from './router.js';
+import { errorPage } from './views/error.js';
+import { catalogPage } from './views/catalog.js';
+
+export const RUN_FILENAME = 'run.json';
+const ALLOWED_HOSTNAMES = new Set(['127.0.0.1', 'localhost', '[::1]']);
+
+export class StartupError extends Error {
+  constructor(message, { code, pending } = {}) {
+    super(message);
+    this.name = 'StartupError';
+    this.code = code;
+    this.pending = pending;
+  }
+}
+
+export function runFilePath(dataDir) {
+  return resolve(dataDir, RUN_FILENAME);
+}
+
+export function isProcessAlive(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error.code === 'EPERM';
+  }
+}
+
+/** 读取数据目录的运行记录；没有记录时返回 null。 */
+export function readRunInfo(dataDir) {
+  const file = runFilePath(dataDir);
+  let text;
+  try {
+    text = readFileSync(file, 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
+  let info = {};
+  try { info = JSON.parse(text) || {}; } catch { /* 损坏的记录按已失效处理 */ }
+  return { pid: info.pid, url: info.url ?? null, token: info.token ?? null, startedAt: info.startedAt, file, alive: isProcessAlive(info.pid) };
+}
+
+// 先写临时文件再链接或改名，读者不会看到写了一半的运行记录。
+function writeFileAtomic(file, content, { exclusive }) {
+  const temp = `${file}.${process.pid}.${randomBytes(4).toString('hex')}.tmp`;
+  writeFileSync(temp, content, { mode: 0o600 });
+  try {
+    if (exclusive) linkSync(temp, file);
+    else renameSync(temp, file);
+  } finally {
+    rmSync(temp, { force: true });
+  }
+}
+
+function expectsJson(pathname) {
+  return pathname.startsWith('/api/') || pathname.startsWith('/internal/') || pathname.startsWith('/media/');
+}
+
+/**
+ * 创建学堂应用：start() 取得数据目录的运行锁、准备数据库并监听端口，
+ * stop() 正常关闭连接与数据库并删除运行记录。
+ */
+export function createApp(options = {}) {
+  const config = {
+    dataDir: resolve(options.dataDir ?? resolveDataDir()),
+    host: options.host ?? '127.0.0.1',
+    port: options.port ?? 3000,
+    migrationsDir: options.migrationsDir ?? defaultMigrationsDir,
+    publicDir: options.publicDir ?? resolve(projectRoot, 'public'),
+    mediaDir: options.mediaDir ?? resolve(projectRoot, 'media'),
+    playbackTtlMs: options.playbackTtlMs ?? 60_000,
+    logRequests: options.logRequests ?? false,
+  };
+  const maintenanceToken = randomBytes(32).toString('hex');
+  const runFile = runFilePath(config.dataDir);
+  const router = new Router();
+  const notices = [];
+  let db = null;
+  let server = null;
+  let url = null;
+  let ownsLock = false;
+  let started = false;
+  let stopping = null;
+  let markClosed;
+  const closed = new Promise((resolveClosed) => { markClosed = resolveClosed; });
+
+  const app = {
+    config,
+    router,
+    notices,
+    closed,
+    get db() { return db; },
+    get url() { return url; },
+    start,
+    stop,
+    // 页面和接口取当前登录用户；登录功能接入后替换为读取会话。
+    currentUser: () => null,
+  };
+
+  registerCoreRoutes(app, { maintenanceToken });
+
+  function acquireLock() {
+    const content = JSON.stringify({ pid: process.pid, url: null, token: maintenanceToken, startedAt: Date.now() });
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        writeFileAtomic(runFile, content, { exclusive: true });
+        ownsLock = true;
+        return;
+      } catch (error) {
+        if (error.code !== 'EEXIST') throw error;
+        const info = readRunInfo(config.dataDir);
+        if (info?.alive) {
+          throw new StartupError(
+            `这个数据目录已有学堂在运行（进程 ${info.pid}${info.url ? `，${info.url}` : ''}）。\n`
+            + '请先在它的终端按 Ctrl+C 停止，或为新实例设置另一个 DATA_DIR。',
+            { code: 'already_running' },
+          );
+        }
+        rmSync(runFile, { force: true });
+        notices.push('已清理上次异常退出留下的运行记录。');
+      }
+    }
+    throw new StartupError('无法创建运行记录，请稍后重试。');
+  }
+
+  function prepareDatabase() {
+    const handle = openDatabase(databaseFile(config.dataDir));
+    try {
+      const fresh = !handle.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' LIMIT 1").get();
+      if (fresh) {
+        applyMigrations(handle, config.migrationsDir);
+      } else {
+        const status = migrationStatus(handle, config.migrationsDir);
+        if (status.problems.length) {
+          throw new MigrationError(`迁移记录与迁移文件不一致：\n${status.problems.map((p) => `  - ${p}`).join('\n')}`, { problems: status.problems });
+        }
+        if (status.pending.length) {
+          throw new StartupError('数据库有待执行的迁移', { code: 'pending_migrations', pending: status.pending.map((m) => m.filename) });
+        }
+      }
+      if (seedIfNeeded(handle)) notices.push('首次启动：已创建数据库，并写入示例账号和课程。');
+      return handle;
+    } catch (error) {
+      handle.close();
+      throw error;
+    }
+  }
+
+  async function start() {
+    if (started) throw new Error('同一个应用实例只能启动一次');
+    started = true;
+    mkdirSync(config.dataDir, { recursive: true });
+    acquireLock();
+    try {
+      db = prepareDatabase();
+      server = createServer((req, res) => { handle(req, res); });
+      server.headersTimeout = 10_000;
+      server.requestTimeout = 30_000;
+      await new Promise((resolveListen, rejectListen) => {
+        server.once('error', rejectListen);
+        server.listen(config.port, config.host, () => {
+          server.off('error', rejectListen);
+          resolveListen();
+        });
+      });
+      url = `http://${config.host}:${server.address().port}`;
+      writeFileAtomic(runFile, JSON.stringify({ pid: process.pid, url, token: maintenanceToken, startedAt: Date.now() }), { exclusive: false });
+      return url;
+    } catch (error) {
+      await stop();
+      if (error.code === 'EADDRINUSE') {
+        throw new StartupError(`端口 ${config.port} 已被占用。请先停止占用它的程序，或换一个端口，例如 PORT=3001 npm start。`, { code: 'port_in_use' });
+      }
+      throw error;
+    }
+  }
+
+  function stop() {
+    if (stopping) return stopping;
+    stopping = (async () => {
+      if (server?.listening) {
+        await new Promise((resolveClose) => {
+          // 给进行中的请求和视频流一点时间，超时后强制断开。
+          const timer = setTimeout(() => server.closeAllConnections(), 2000);
+          server.close(() => {
+            clearTimeout(timer);
+            resolveClose();
+          });
+          server.closeIdleConnections();
+        });
+      }
+      try { db?.close(); } catch { /* 已关闭 */ }
+      db = null;
+      if (ownsLock) {
+        rmSync(runFile, { force: true });
+        ownsLock = false;
+      }
+      markClosed();
+    })();
+    return stopping;
+  }
+
+  async function handle(req, res) {
+    const startedAt = process.hrtime.bigint();
+    applySecurityHeaders(res);
+    let pathname = '/';
+    let user;
+    const ctx = {
+      app,
+      req,
+      res,
+      params: {},
+      url: null,
+      get db() { return db; },
+      get path() { return pathname; },
+      get user() {
+        if (user === undefined) user = app.currentUser(ctx) ?? null;
+        return user;
+      },
+    };
+    if (config.logRequests) {
+      res.on('finish', () => {
+        if (/^\/(assets|covers|media)\//.test(pathname)) return;
+        const ms = Number(process.hrtime.bigint() - startedAt) / 1e6;
+        console.log(`${req.method} ${pathname} ${res.statusCode} ${ms.toFixed(1)}ms`);
+      });
+    }
+    try {
+      const requestUrl = new URL(req.url, 'http://127.0.0.1');
+      pathname = requestUrl.pathname;
+      ctx.url = requestUrl;
+      const hostname = String(req.headers.host || '').replace(/:\d+$/, '').toLowerCase();
+      if (!ALLOWED_HOSTNAMES.has(hostname)) throw new HttpError(400, '请求的 Host 无效，请通过 localhost 或 127.0.0.1 访问');
+      if (req.method !== 'GET' && req.method !== 'HEAD') {
+        const origin = req.headers.origin;
+        if (origin !== undefined && origin !== `http://${req.headers.host}`) throw new HttpError(403, '请求来源不受信任');
+        if (pathname.startsWith('/api/') && !isJsonRequest(req)) {
+          throw new HttpError(415, '请用 JSON 提交，并设置请求头 Content-Type: application/json');
+        }
+      }
+      const found = router.match(req.method, pathname);
+      if (!found) throw new HttpError(404, expectsJson(pathname) ? '接口不存在' : '页面不存在');
+      ctx.params = found.params;
+      await found.handler(ctx);
+    } catch (error) {
+      sendError(ctx, error);
+    }
+  }
+
+  function sendError(ctx, error) {
+    const { res } = ctx;
+    const status = error instanceof HttpError ? error.status : 500;
+    if (status >= 500) console.error(error);
+    if (res.headersSent) {
+      res.destroy();
+      return;
+    }
+    const message = status >= 500 ? '服务暂时不可用，请稍后重试' : error.message;
+    const headers = error.headers || {};
+    if (expectsJson(ctx.path)) {
+      sendJson(res, status, error.fields ? { error: message, fields: error.fields } : { error: message }, headers);
+      return;
+    }
+    let user = null;
+    try { user = ctx.user; } catch { /* 出错页不依赖登录状态 */ }
+    sendHtml(res, status, errorPage({ status, message, user, path: ctx.path }), headers);
+  }
+
+  return app;
+}
+
+function registerCoreRoutes(app, { maintenanceToken }) {
+  const { router, config } = app;
+
+  router.get('/assets/*', (ctx) => serveStatic(ctx.req, ctx.res, config.publicDir, ctx.params.rest));
+  router.get('/favicon.ico', (ctx) => redirect(ctx.res, '/assets/favicon.svg', 301));
+
+  router.get('/', (ctx) => {
+    sendHtml(ctx.res, 200, catalogPage({ user: ctx.user, path: ctx.path }));
+  });
+
+  router.get('/api/health', (ctx) => {
+    const status = migrationStatus(ctx.db, config.migrationsDir);
+    sendJson(ctx.res, 200, {
+      ok: true,
+      migrations: { applied: status.applied, pending: status.pending.map((m) => m.filename) },
+    });
+  });
+
+  // 备份脚本用运行记录里的令牌请求正常停服：先应答，再关闭连接和数据库。
+  router.post('/internal/stop', (ctx) => {
+    if (!constantTimeEqual(ctx.req.headers['x-maintenance-token'] || '', maintenanceToken)) {
+      throw new HttpError(403, '维护令牌无效');
+    }
+    ctx.res.on('finish', () => { app.stop().catch((error) => console.error(error)); });
+    sendJson(ctx.res, 202, { message: '正在停止服务' });
+  });
+}
