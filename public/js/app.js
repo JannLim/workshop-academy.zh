@@ -249,6 +249,175 @@
     });
   };
 
+  // ---------- 课程管理：发布与取消发布 ----------
+  // 与服务端 views/format.js 的 formatDateTime 相同：2026-11-08 19:31（本机时间）。
+  function formatDateTime(ms) {
+    const date = new Date(ms);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  pages.admin = () => {
+    const list = document.querySelector('.admin-list');
+    if (!list) return;
+
+    function updateCounts() {
+      const rows = [...list.querySelectorAll('[data-course-id]')];
+      const published = rows.filter((row) => row.dataset.published === '1').length;
+      const set = (key, value) => { const el = document.querySelector(`[data-count="${key}"]`); if (el) el.textContent = value; };
+      set('all', rows.length);
+      set('published', published);
+      set('draft', rows.length - published);
+    }
+
+    function render(row, course) {
+      row.dataset.published = course.published ? '1' : '0';
+      const status = row.querySelector('[data-role="status"]');
+      status.textContent = course.published ? '已发布' : '草稿';
+      status.className = `badge ${course.published ? 'badge-success' : 'badge-warning'}`;
+      const button = row.querySelector('[data-action="toggle-publish"]');
+      button.textContent = course.published ? '取消发布' : '发布';
+      button.classList.toggle('btn-primary', !course.published);
+      const view = row.querySelector('[data-role="view"]');
+      if (course.published) {
+        view.removeAttribute('aria-hidden');
+        view.removeAttribute('tabindex');
+      } else {
+        view.setAttribute('aria-hidden', 'true');
+        view.tabIndex = -1;
+      }
+      const updated = row.querySelector('[data-role="updated"]');
+      if (updated) updated.textContent = formatDateTime(course.updatedAt);
+    }
+
+    /** 结果写在本行底部，并通过全局状态区读给读屏软件。 */
+    function rowMessage(row, text, kind = 'success') {
+      const line = row.querySelector('[data-role="message"]');
+      line.hidden = !text;
+      line.textContent = text || '';
+      line.dataset.kind = kind;
+      if (text) announce(text);
+    }
+
+    list.addEventListener('click', async (event) => {
+      const button = event.target.closest('[data-action="toggle-publish"]');
+      if (!button) return;
+      const row = button.closest('[data-course-id]');
+      const title = row.querySelector('.admin-title').textContent.trim();
+      const publish = row.dataset.published !== '1';
+      setBusy(button, true);
+      list.querySelectorAll('[data-role="message"]').forEach((line) => { line.hidden = true; });
+      try {
+        const { course } = await api(`/api/admin/courses/${row.dataset.courseId}`, { method: 'PATCH', body: { published: publish } });
+        render(row, course);
+        updateCounts();
+        rowMessage(row, course.published ? `《${title}》已发布，学员现在可以在目录中看到它。` : `《${title}》已取消发布，目录和详情页不再显示，也不会再签发新的播放地址。`);
+      } catch (error) {
+        rowMessage(row, `《${title}》${publish ? '发布' : '取消发布'}失败：${error.message}`, 'danger');
+      } finally {
+        setBusy(button, false);
+        button.focus();
+      }
+    });
+  };
+
+  // ---------- 新建 / 编辑课程 ----------
+  function formatSize(bytes) {
+    return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.round(bytes / 1024)} KB`;
+  }
+
+  function formatClock(seconds) {
+    const total = Math.round(seconds || 0);
+    return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+  }
+
+  pages['course-form'] = () => {
+    const form = document.getElementById('course-form');
+    if (!form) return;
+    const message = document.getElementById('form-message');
+    const submit = form.querySelector('button[type="submit"]');
+    const select = form.elements.videoFile;
+    const courseId = form.dataset.courseId;
+    const editing = Boolean(courseId);
+
+    async function loadVideos() {
+      const current = select.dataset.current;
+      setFieldError(form, 'videoFile', '');
+      try {
+        const { videos } = await api('/api/admin/videos');
+        select.replaceChildren(new Option('请选择视频', ''));
+        for (const video of videos) {
+          const duration = video.durationSeconds === null ? '时长未知' : formatClock(video.durationSeconds);
+          select.add(new Option(`${video.file} · ${duration} · ${formatSize(video.sizeBytes)}`, video.file));
+        }
+        if (current && !videos.some((v) => v.file === current)) {
+          select.add(new Option(`${current}（文件已不在 media/ 中）`, current));
+        }
+        select.value = current || '';
+        select.disabled = false;
+        if (!videos.length) setFieldError(form, 'videoFile', 'media/ 中还没有视频文件，请先放入 MP4 文件。');
+      } catch (error) {
+        select.replaceChildren(new Option('视频列表读取失败', ''));
+        setFieldError(form, 'videoFile', `视频列表读取失败：${error.message}`);
+      }
+    }
+
+    function collect() {
+      const value = (name) => form.elements[name].value;
+      return {
+        title: value('title').trim(),
+        summary: value('summary').trim(),
+        description: value('description').trim(),
+        instructor: value('instructor').trim(),
+        level: value('level'),
+        videoFile: value('videoFile'),
+        published: form.elements.published.checked,
+      };
+    }
+
+    function check(data) {
+      const errors = {};
+      if (!data.title) errors.title = '请填写课程标题';
+      if (!data.summary) errors.summary = '请填写一句话简介';
+      if (!data.instructor) errors.instructor = '请填写讲师';
+      if (!data.level) errors.level = '请选择课程难度';
+      if (!data.videoFile) errors.videoFile = '请选择课程视频';
+      return errors;
+    }
+
+    form.addEventListener('input', (event) => {
+      if (event.target.name) setFieldError(form, event.target.name, '');
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      clearFieldErrors(form);
+      showMessage(message, '');
+      const data = collect();
+      const errors = check(data);
+      if (Object.keys(errors).length) {
+        showMessage(message, '还有内容没有填写完整，请检查标出的字段。', 'danger');
+        showFieldErrors(form, errors);
+        return;
+      }
+      setBusy(submit, true);
+      try {
+        const { course } = await api(editing ? `/api/admin/courses/${courseId}` : '/api/admin/courses', {
+          method: editing ? 'PATCH' : 'POST',
+          body: data,
+        });
+        window.location.assign(`/admin?notice=${editing ? 'updated' : 'created'}&id=${course.id}`);
+      } catch (error) {
+        setBusy(submit, false);
+        showMessage(message, error.message, 'danger');
+        if (!showFieldErrors(form, error.fields || {})) message.focus();
+      }
+    });
+
+    message.tabIndex = -1;
+    loadVideos();
+  };
+
   document.addEventListener('DOMContentLoaded', () => {
     initLogout();
     const page = document.body.dataset.page;

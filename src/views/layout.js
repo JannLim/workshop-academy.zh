@@ -10,8 +10,9 @@ export function loginHref(path = '/') {
   return path && path !== '/' && !path.startsWith('/login') ? `/login?next=${encodeURIComponent(path)}` : '/login';
 }
 
+// 窄屏只显示“目录”“管理”，前缀“课程”在宽屏显示。
 function navLink(href, label, current) {
-  return html`<a class="nav-link" href="${href}"${current ? html` aria-current="page"` : ''}>${label}</a>`;
+  return html`<a class="nav-link" href="${href}"${current ? html` aria-current="page"` : ''}><span class="nav-prefix">课程</span>${label}</a>`;
 }
 
 function userMenu(user) {
@@ -44,11 +45,11 @@ export function layout({ title, page, user = null, path = '/', content }) {
   <div class="container header-inner">
     <a class="brand" href="/" aria-label="学堂在线首页">${logo()}<span class="brand-name">学堂在线</span></a>
     <nav class="site-nav" aria-label="主导航">
-      ${navLink('/', '课程目录', section === 'catalog')}
-      ${user?.role === 'admin' ? navLink('/admin', '课程管理', section === 'admin') : ''}
+      ${navLink('/', '目录', section === 'catalog')}
+      ${user?.role === 'admin' ? navLink('/admin', '管理', section === 'admin') : ''}
     </nav>
     <div class="header-actions">
-      ${user ? userMenu(user) : html`<a class="btn btn-sm btn-primary" href="${loginHref(path)}">登录</a>`}
+      ${user ? userMenu(user) : path.startsWith('/login') ? '' : html`<a class="btn btn-sm btn-primary" href="${loginHref(path)}">登录</a>`}
     </div>
   </div>
 </header>
