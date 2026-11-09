@@ -16,7 +16,7 @@ import {
 } from './http.js';
 import { Router } from './router.js';
 import { errorPage } from './views/error.js';
-import { catalogPage } from './views/catalog.js';
+import { registerCourseRoutes } from './courses.js';
 
 export const RUN_FILENAME = 'run.json';
 const ALLOWED_HOSTNAMES = new Set(['127.0.0.1', 'localhost', '[::1]']);
@@ -118,6 +118,9 @@ export function createApp(options = {}) {
 
   registerCoreRoutes(app, { maintenanceToken });
   registerAuthRoutes(app, { demoAccounts, demoPassword: DEMO_PASSWORD });
+  registerCourseRoutes(app, {
+    watchState: (ctx) => (ctx.user ? { state: 'soon', message: '视频播放即将开放' } : { state: 'login' }),
+  });
 
   function acquireLock() {
     const content = JSON.stringify({ pid: process.pid, url: null, token: maintenanceToken, startedAt: Date.now() });
@@ -294,10 +297,6 @@ function registerCoreRoutes(app, { maintenanceToken }) {
 
   router.get('/assets/*', (ctx) => serveStatic(ctx.req, ctx.res, config.publicDir, ctx.params.rest));
   router.get('/favicon.ico', (ctx) => redirect(ctx.res, '/assets/favicon.svg', 301));
-
-  router.get('/', (ctx) => {
-    sendHtml(ctx.res, 200, catalogPage({ user: ctx.user, path: ctx.path }));
-  });
 
   router.get('/api/health', (ctx) => {
     const status = migrationStatus(ctx.db, config.migrationsDir);
