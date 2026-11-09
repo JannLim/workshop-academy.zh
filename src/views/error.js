@@ -21,6 +21,13 @@ const HINTS = {
   500: '服务遇到了意外问题，请稍后刷新重试；如果一直出现，请查看服务终端的输出。',
 };
 
+// 已登录用户直接去 /login 会被送回原页面，所以带上 switch=1 显示登录表单。
+function switchAccountHref(path, user) {
+  const href = loginHref(path);
+  if (!user) return href;
+  return href.includes('?') ? href.replace('?', '?switch=1&') : `${href}?switch=1`;
+}
+
 /** 补上句末标点，让各种来源的说明读起来一致。 */
 function sentence(text) {
   return /[。！？.!?]$/.test(text) ? text : `${text}。`;
@@ -44,7 +51,7 @@ export function errorPage({ status, message, user = null, path = '/' }) {
     <p class="lead">${hint}</p>
     <div class="actions">
       <a class="btn btn-primary" href="/">返回课程目录</a>
-      ${status === 403 || status === 401 ? html`<a class="btn" href="${loginHref(path)}">换个账号登录</a>` : ''}
+      ${status === 403 || status === 401 ? html`<a class="btn" href="${switchAccountHref(path, user)}">${user ? '换个账号登录' : '登录'}</a>` : ''}
     </div>
   </div>
 </section>`,

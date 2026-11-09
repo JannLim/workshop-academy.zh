@@ -9,7 +9,8 @@ import {
   applyMigrations, databaseFile, defaultMigrationsDir, migrationStatus, openDatabase, projectRoot,
   resolveDataDir, MigrationError,
 } from './db.js';
-import { seedIfNeeded } from './seed.js';
+import { DEMO_PASSWORD, demoAccounts, seedIfNeeded } from './seed.js';
+import { registerAuthRoutes } from './auth.js';
 import {
   HttpError, applySecurityHeaders, constantTimeEqual, isJsonRequest, redirect, sendHtml, sendJson, serveStatic,
 } from './http.js';
@@ -111,11 +112,12 @@ export function createApp(options = {}) {
     get url() { return url; },
     start,
     stop,
-    // 页面和接口取当前登录用户；登录功能接入后替换为读取会话。
+    // 当前登录用户，由 registerAuthRoutes 接入会话读取。
     currentUser: () => null,
   };
 
   registerCoreRoutes(app, { maintenanceToken });
+  registerAuthRoutes(app, { demoAccounts, demoPassword: DEMO_PASSWORD });
 
   function acquireLock() {
     const content = JSON.stringify({ pid: process.pid, url: null, token: maintenanceToken, startedAt: Date.now() });

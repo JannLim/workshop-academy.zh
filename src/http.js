@@ -173,7 +173,7 @@ export function serveStatic(req, res, root, relativePath) {
   const etag = `W/"${stat.size.toString(16)}-${Math.floor(stat.mtimeMs).toString(16)}"`;
   const headers = {
     'Content-Type': type,
-    'Cache-Control': 'public, max-age=300, must-revalidate',
+    'Cache-Control': 'public, no-cache',
     ETag: etag,
     'Last-Modified': stat.mtime.toUTCString(),
   };
