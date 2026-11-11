@@ -1,0 +1,67 @@
+✖ 报名接口按本人身份隔离，拒绝游客管理员及伪造归属 (130.892167ms)
+✖ 报名无名额限制且重复并发幂等，取消再报与下架列表 (114.085208ms)
+✖ 报名请求保留 JSON 同源校验，失败写入不报告成功 (76.447ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 0
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 387.230667
+
+✖ failing tests:
+
+test at test/enrollment.test.js:12:1
+✖ 报名接口按本人身份隔离，拒绝游客管理员及伪造归属 (130.892167ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  404 !== 401
+  
+      at TestContext.<anonymous> (file:///Users/linjuanjuan/Study/workshop-academy.zh/test/enrollment.test.js:18:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/enrollment.test.js:31:1
+✖ 报名无名额限制且重复并发幂等，取消再报与下架列表 (114.085208ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  
+  undefined !== []
+  
+      at TestContext.<anonymous> (file:///Users/linjuanjuan/Study/workshop-academy.zh/test/enrollment.test.js:35:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/enrollment.test.js:56:1
+✖ 报名请求保留 JSON 同源校验，失败写入不报告成功 (76.447ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  404 !== 400
+  
+      at TestContext.<anonymous> (file:///Users/linjuanjuan/Study/workshop-academy.zh/test/enrollment.test.js:61:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 400,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

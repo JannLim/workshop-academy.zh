@@ -143,3 +143,18 @@ curl -s -b admin.txt -X PATCH -H 'Content-Type: application/json' \
 | `/admin/courses/new`、`/admin/courses/:id/edit` | 新建、编辑课程 |
 
 页面出错时返回带站点外壳的 HTML 错误页；未登录访问管理页会跳转到登录页。
+
+## 本人报名
+
+以下接口仅面向已登录学员，游客返回 401，管理员返回 403。
+归属由当前会话确定，不接受客户端指定用户；写操作请求体为空或 `{}`，附加字段返回 400。
+
+| 方法 | 路径 | 结果 |
+| --- | --- | --- |
+| GET | `/api/enrollments` | 200，`{enrollments:[{courseId,title,available}]}`，按课程编号排序，只含本人的有效报名 |
+| POST | `/api/courses/:id/enrollment` | 200，`{enrolled:true}`；仅已发布课程可报名，重复并发提交不重复创建 |
+| DELETE | `/api/courses/:id/enrollment` | 200，`{enrolled:false}`；取消本人报名，未报名或重复取消也成功，下架课程仍可取消 |
+
+不存在或无效编号返回 404，报名未发布课程返回 404。
+列表中的 available 表示课程当前是否已发布，下架课程只保留识别信息，不返回完整详情或播放地址。
+取消后不展示历史，重新报名创建新的有效关联；不存在人数限制、审批或过期条件。

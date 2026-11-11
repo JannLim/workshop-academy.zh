@@ -10,6 +10,7 @@ import {
   resolveDataDir, MigrationError,
 } from './db.js';
 import { DEMO_PASSWORD, demoAccounts, seedIfNeeded } from './seed.js';
+import { registerEnrollmentRoutes } from './enrollment.js';
 import { registerAuthRoutes } from './auth.js';
 import {
   HttpError, applySecurityHeaders, constantTimeEqual, isJsonRequest, redirect, sendHtml, sendJson, serveStatic,
@@ -156,6 +157,7 @@ export function createApp(options = {}) {
   registerCoreRoutes(app, { maintenanceToken });
   registerAuthRoutes(app, { demoAccounts, demoPassword: DEMO_PASSWORD });
   registerCourseRoutes(app, { watchState: watchStateForPage });
+  registerEnrollmentRoutes(app);
   registerPlaybackRoutes(app);
 
   function acquireLock() {
