@@ -74,6 +74,7 @@ export function client(baseUrl) {
     get: (path, options) => request(path, options),
     post: (path, json = {}, options = {}) => request(path, { method: 'POST', json, ...options }),
     patch: (path, json = {}, options = {}) => request(path, { method: 'PATCH', json, ...options }),
+    del: (path, json = {}, options = {}) => request(path, { method: 'DELETE', json, ...options }),
   };
 }
 
