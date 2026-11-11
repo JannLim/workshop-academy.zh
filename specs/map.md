@@ -33,5 +33,7 @@ meta.md       规约的规约
 
 | 文件 | 摘要 |
 | --- | --- |
+| [enrollment.md](packages/enrollment.md) | 报名创建、取消、自助管理与持久化，被 watch 规约包依赖 |
 | [git.md](packages/git.md) | 提交信息格式和 AI 共同作者 trailers |
 | [licensing.md](packages/licensing.md) | SPDX 头要求与验证检查 |
+| [watch.md](packages/watch.md) | 观看资格、播放授权与公开浏览，依赖 enrollment 规约包 |
