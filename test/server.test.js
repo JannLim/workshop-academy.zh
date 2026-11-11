@@ -39,7 +39,7 @@ test('静态资源可协商缓存，不提供目录外或隐藏文件', async (t
   assert.match(await (await fetch(`${app.url}/assets/js/app.js`)).text(), /use strict/);
   assert.equal((await fetch(`${app.url}/assets/favicon.svg`)).headers.get('content-type'), 'image/svg+xml');
   for (const path of ['/assets/%2e%2e/src/app.js', '/assets/..%2fpackage.json', '/assets/.hidden', '/assets/css', '/media/python-basics.mp4', '/migrations/001-init.sql']) {
-    assert.equal((await fetch(`${app.url}${path}`)).status, 404, path);
+    assert.equal((await fetch(`${app.url}${path}`)).status, path.startsWith('/media/') ? 401 : 404, path);
   }
 });
 

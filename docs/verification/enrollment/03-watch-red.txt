@@ -1,0 +1,35 @@
+✔ 示例视频齐全，时长与种子课程一致，体积小 (1.638916ms)
+✔ 取得播放地址需要登录且课程已发布 (96.124084ms)
+✔ 课程页按同一资格检查显示观看状态 (79.309042ms)
+✔ 签名地址支持范围请求，篡改的地址被拒绝 (82.543708ms)
+✔ 播放地址到期后返回 410，重新申请即可继续 (489.707666ms)
+✔ 课程的视频文件缺失时返回 404 (104.430667ms)
+✖ 观看矩阵统一检查身份报名和发布状态，旧地址立即失去资格 (112.651291ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 6
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1031.732959
+
+✖ failing tests:
+
+test at test/watch.test.js:156:1
+✖ 观看矩阵统一检查身份报名和发布状态，旧地址立即失去资格 (112.651291ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  200 !== 403
+  
+      at TestContext.<anonymous> (file:///Users/linjuanjuan/Study/workshop-academy.zh/test/watch.test.js:161:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 403,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

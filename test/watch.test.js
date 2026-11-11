@@ -32,6 +32,7 @@ test('取得播放地址需要登录且课程已发布', async (t) => {
 
   const student = client(app.url);
   await login(student);
+  for (const id of [1, 2, 3]) await student.post(`/api/courses/${id}/enrollment`);
   for (const id of [4, 999]) {
     const response = await student.post(`/api/courses/${id}/play`);
     assert.equal(response.status, 404, String(id));
@@ -58,6 +59,7 @@ test('课程页按同一资格检查显示观看状态', async (t) => {
 
   const student = client(app.url);
   await login(student);
+  for (const id of [1, 2, 3]) await student.post(`/api/courses/${id}/enrollment`);
   const page = await (await student.get('/courses/2')).text();
   assert.match(page, /data-state="ready"/);
   assert.match(page, /data-action="watch"/);
@@ -69,11 +71,12 @@ test('签名地址支持范围请求，篡改的地址被拒绝', async (t) => {
   const app = await startApp(t);
   const student = client(app.url);
   await login(student);
+  for (const id of [1, 2, 3]) await student.post(`/api/courses/${id}/enrollment`);
   const { url } = await (await student.post('/api/courses/1/play')).json();
   const size = statSync(resolve(mediaDir, 'python-basics.mp4')).size;
 
-  // 播放地址本身就是授权：不带 cookie 的请求也能读取。
-  const part = await fetch(`${app.url}${url}`, { headers: { range: 'bytes=0-31' } });
+  // 视频读取同时携带本人会话和限时授权。
+  const part = await student.get(url, { headers: { range: 'bytes=0-31' } });
   assert.equal(part.status, 206);
   assert.equal(part.headers.get('content-type'), 'video/mp4');
   assert.equal(part.headers.get('accept-ranges'), 'bytes');
@@ -82,24 +85,24 @@ test('签名地址支持范围请求，篡改的地址被拒绝', async (t) => {
   assert.equal(bytes.length, 32);
   assert.equal(bytes.toString('latin1', 4, 8), 'ftyp');
 
-  const tail = await fetch(`${app.url}${url}`, { headers: { range: 'bytes=-10' } });
+  const tail = await student.get(url, { headers: { range: 'bytes=-10' } });
   assert.equal(tail.status, 206);
   assert.equal(tail.headers.get('content-range'), `bytes ${size - 10}-${size - 1}/${size}`);
   assert.equal((await tail.arrayBuffer()).byteLength, 10);
 
-  const open = await fetch(`${app.url}${url}`, { headers: { range: 'bytes=100-' } });
+  const open = await student.get(url, { headers: { range: 'bytes=100-' } });
   assert.equal(open.headers.get('content-length'), String(size - 100));
   await open.arrayBuffer();
 
-  const whole = await fetch(`${app.url}${url}`);
+  const whole = await student.get(url);
   assert.equal(whole.status, 200);
   assert.equal((await whole.arrayBuffer()).byteLength, size);
 
-  const head = await fetch(`${app.url}${url}`, { method: 'HEAD' });
+  const head = await student.request(url, { method: 'HEAD' });
   assert.equal(head.status, 200);
   assert.equal(head.headers.get('content-length'), String(size));
 
-  const beyond = await fetch(`${app.url}${url}`, { headers: { range: `bytes=${size}-` } });
+  const beyond = await student.get(url, { headers: { range: `bytes=${size}-` } });
   assert.equal(beyond.status, 416);
   assert.equal(beyond.headers.get('content-range'), `bytes */${size}`);
 
@@ -114,12 +117,12 @@ test('签名地址支持范围请求，篡改的地址被拒绝', async (t) => {
     `/media/1?expires=abc&signature=${signature}`,
   ];
   for (const path of forged) {
-    const response = await fetch(`${app.url}${path}`);
+    const response = await student.get(path);
     assert.equal(response.status, 403, path);
     assert.deepEqual(await response.json(), { error: '播放地址无效' });
   }
   for (const path of ['/media/python-basics.mp4', '/assets/../media/python-basics.mp4', '/media/']) {
-    assert.equal((await fetch(`${app.url}${path}`)).status, 404, path);
+    assert.equal((await student.get(path)).status, 404, path);
   }
 });
 
@@ -127,23 +130,56 @@ test('播放地址到期后返回 410，重新申请即可继续', async (t) => 
   const app = await startApp(t, { playbackTtlMs: 300 });
   const student = client(app.url);
   await login(student);
+  for (const id of [1, 2, 3]) await student.post(`/api/courses/${id}/enrollment`);
   const first = await (await student.post('/api/courses/3/play')).json();
-  assert.equal((await fetch(`${app.url}${first.url}`, { headers: { range: 'bytes=0-1' } })).status, 206);
+  assert.equal((await student.get(first.url, { headers: { range: 'bytes=0-1' } })).status, 206);
   await sleep(400);
-  const expired = await fetch(`${app.url}${first.url}`, { headers: { range: 'bytes=2-3' } });
+  const expired = await student.get(first.url, { headers: { range: 'bytes=2-3' } });
   assert.equal(expired.status, 410);
   assert.deepEqual(await expired.json(), { error: '播放地址已过期，请重新获取' });
   const renewed = await (await student.post('/api/courses/3/play')).json();
-  assert.equal((await fetch(`${app.url}${renewed.url}`, { headers: { range: 'bytes=2-3' } })).status, 206);
+  assert.equal((await student.get(renewed.url, { headers: { range: 'bytes=2-3' } })).status, 206);
 });
 
 test('课程的视频文件缺失时返回 404', async (t) => {
   const app = await startApp(t);
   const student = client(app.url);
   await login(student);
+  for (const id of [1, 2, 3]) await student.post(`/api/courses/${id}/enrollment`);
   app.db.prepare("UPDATE courses SET video_file = 'missing-video.mp4' WHERE id = 2").run();
   const { url } = await (await student.post('/api/courses/2/play')).json();
-  const response = await fetch(`${app.url}${url}`);
+  const response = await student.get(url);
   assert.equal(response.status, 404);
   assert.deepEqual(await response.json(), { error: '视频不存在' });
+});
+
+test('观看矩阵统一检查身份报名和发布状态，旧地址立即失去资格', async (t) => {
+  const app = await startApp(t);
+  const a = client(app.url), b = client(app.url), guest = client(app.url), admin = client(app.url);
+  await login(a); await login(b, 'student2'); await login(admin, 'admin');
+  for (const [c, status] of [[guest, 401], [admin, 403], [a, 403]]) {
+    assert.equal((await c.post('/api/courses/1/play')).status, status);
+  }
+  for (const [c, status] of [[guest, 401], [admin, 403], [a, 404]]) {
+    assert.equal((await c.post('/api/courses/abc/play')).status, status);
+  }
+  await a.post('/api/courses/1/enrollment');
+  const { url } = await (await a.post('/api/courses/1/play')).json();
+  const read = async (c, expected) => {
+    for (const options of [{}, { headers: { range: 'bytes=0-1' } }, { method: 'HEAD' }]) {
+      const r = await c.request(url, options);
+      assert.equal(r.status, expected === 200 && options.headers ? 206 : expected);
+      await r.arrayBuffer();
+    }
+  };
+  await read(guest, 401); await read(admin, 403); await read(b, 403); await read(a, 200);
+  await b.post('/api/courses/1/enrollment'); await read(b, 200);
+  await a.request('/api/courses/1/enrollment', { method: 'DELETE', json: {} }); await read(a, 403);
+  assert.equal((await a.post('/api/courses/1/play')).status, 403);
+  await a.post('/api/courses/1/enrollment');
+  await admin.patch('/api/admin/courses/1', { published: false }); await read(a, 404);
+  await admin.patch('/api/admin/courses/1', { published: true }); await read(a, 200);
+  await a.post('/api/logout'); await read(a, 401);
+  await login(a);
+  app.db.prepare('UPDATE sessions SET expires_at = 0 WHERE user_id = 2').run(); await read(a, 401);
 });

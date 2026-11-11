@@ -1,0 +1,69 @@
+
+> workshop-academy@1.0.0 test
+> node --disable-warning=ExperimentalWarning --test "test/*.test.js"
+
+✔ 管理页面：未登录跳转登录，学员看到 403 页面 (191.398208ms)
+✔ 管理接口只对管理员开放 (102.845ms)
+✔ 管理员创建草稿、修改并发布课程，目录随之变化 (128.521291ms)
+✔ 课程字段校验返回逐字段的中文提示 (94.578459ms)
+✔ 示例账号登录后取得 HttpOnly 会话，退出后会话失效 (179.629416ms)
+✔ 已登录时换账号登录，新会话替换旧会话 (120.775583ms)
+✔ 数据库只保存会话令牌的散列，过期会话无效 (94.688083ms)
+✔ 登录页提供示例账号；已登录时按安全的 next 跳转 (95.482167ms)
+✔ 请求体过大或不是 JSON 对象时拒绝 (66.814166ms)
+✔ 目录与详情只公开已发布课程 (98.248083ms)
+✔ 目录页与详情页渲染课程信息，草稿返回 HTML 404 页面 (87.489333ms)
+✔ 页面内容经过转义 (96.045542ms)
+✔ 封面按课程编号确定生成像素 SVG (72.617ms)
+✔ 新数据库执行全部迁移并写入示例数据，重复执行不改变数据 (118.587625ms)
+✔ 迁移状态列出待执行文件，执行失败的文件整体回滚 (10.224875ms)
+✔ 已执行的迁移被修改、删除或新文件排在前面时拒绝迁移 (5.017459ms)
+✔ 报名迁移保留旧账号课程且不自动报名 (83.743208ms)
+✔ 报名接口按本人身份隔离，拒绝游客管理员及伪造归属 (197.106708ms)
+✔ 报名无名额限制且重复并发幂等，取消再报与下架列表 (161.041291ms)
+Error: 测试写入失败
+    at Object.handler (file:///Users/linjuanjuan/Study/workshop-academy.zh/src/enrollment.js:39:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async handle (file:///Users/linjuanjuan/Study/workshop-academy.zh/src/app.js:287:7) {
+  code: 'ERR_SQLITE_ERROR',
+  errcode: 1811,
+  errstr: 'constraint failed'
+}
+Error: 测试取消失败
+    at Object.handler (file:///Users/linjuanjuan/Study/workshop-academy.zh/src/enrollment.js:41:85)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async handle (file:///Users/linjuanjuan/Study/workshop-academy.zh/src/app.js:287:7) {
+  code: 'ERR_SQLITE_ERROR',
+  errcode: 1811,
+  errstr: 'constraint failed'
+}
+✔ 报名请求保留 JSON 同源校验，失败写入不报告成功 (102.107542ms)
+✔ 备份会先请运行中的服务正常停止，再复制数据库 (372.031125ms)
+✔ 恢复要求服务已停止，校验快照并保留恢复前的数据库 (596.658291ms)
+✔ 新增迁移后：启动被拒绝，备份并迁移后保留原数据启动 (540.736667ms)
+✔ 同一数据目录不能启动第二个服务 (164.248417ms)
+✔ 每个源文件都带 SPDX 许可与版权声明 (33.730333ms)
+✔ 固定 Node.js 24 且没有 npm 依赖 (0.186208ms)
+✔ 页面返回带站点外壳的中文 HTML 和安全响应头 (99.356125ms)
+✔ 静态资源可协商缓存，不提供目录外或隐藏文件 (97.553375ms)
+✔ 页面路由出错返回 HTML 错误页，接口出错返回中文 JSON (74.149542ms)
+✔ 非 GET 接口要求 JSON 与同源请求，并拒绝陌生 Host (71.241125ms)
+✔ 健康检查报告迁移状态 (70.100792ms)
+✔ 运行记录只允许一个实例使用同一数据目录，失效记录自动清理 (69.680333ms)
+✔ 数据库有待执行的迁移时拒绝启动并保持数据不变 (64.396333ms)
+✔ 维护令牌可以请求正常停服，错误令牌被拒绝 (61.599791ms)
+✔ 示例视频齐全，时长与种子课程一致，体积小 (1.896291ms)
+✔ 取得播放地址需要登录且课程已发布 (147.422542ms)
+✔ 课程页按同一资格检查显示观看状态 (100.192083ms)
+✔ 签名地址支持范围请求，篡改的地址被拒绝 (106.39025ms)
+✔ 播放地址到期后返回 410，重新申请即可继续 (499.926958ms)
+✔ 课程的视频文件缺失时返回 404 (85.923833ms)
+✔ 观看矩阵统一检查身份报名和发布状态，旧地址立即失去资格 (168.87975ms)
+ℹ tests 41
+ℹ suites 0
+ℹ pass 41
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1769.089333

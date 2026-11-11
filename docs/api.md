@@ -65,19 +65,22 @@ curl -s http://localhost:3000/api/courses/1
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| `POST` | `/api/courses/:id/play` | 取得播放地址 `{"url", "expiresAt"}`；未登录 401，课程不存在或未发布 404 |
+| `POST` | `/api/courses/:id/play` | 取得播放地址 `{"url", "expiresAt"}`；未登录 401，非学员 403，学员访问不可用课程 404，未有效报名 403 |
 | `GET` / `HEAD` | `/media/:id?expires=…&signature=…` | 读取视频，支持 `Range`；签名无效 403，已过期 410，视频缺失 404 |
 
-观看资格只在签发播放地址时检查，页面的“开始观看”按钮和直接调用接口经过同一个检查（`src/playback.js` 中的 `checkWatchEligibility`）。
-播放地址默认 60 秒内有效，地址本身就是授权，不需要 cookie；已签发的地址在到期前都可读取，即使课程随后被取消发布。
+观看资格在页面、签发地址及每次媒体读取时检查，各入口经过同一个检查（`src/playback.js` 中的 `checkWatchEligibility`）。
+播放地址默认 60 秒内有效，读取必须同时携带有效学员会话且有本人有效报名，课程必须当前已发布。
+取消报名、退出、会话失效或下架后，后续读取立即拒绝；不承诺回收已缓冲数据或中断已开始的响应。
 页面播放时如果地址过期，会自动重新申请并从当前进度继续。
 
 ```sh
 curl -s -b cookies.txt -X POST -H 'Content-Type: application/json' \
+  http://localhost:3000/api/courses/1/enrollment
+curl -s -b cookies.txt -X POST -H 'Content-Type: application/json' \
   http://localhost:3000/api/courses/1/play
 # {"url":"/media/1?expires=1794190000000&signature=…","expiresAt":1794190000000}
 
-curl -s -o /dev/null -w '%{http_code} %{size_download}\n' -H 'Range: bytes=0-1023' \
+curl -s -b cookies.txt -o /dev/null -w '%{http_code} %{size_download}\n' -H 'Range: bytes=0-1023' \
   'http://localhost:3000/media/1?expires=…&signature=…'
 # 206 1024
 ```

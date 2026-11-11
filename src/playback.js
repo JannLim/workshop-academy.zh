@@ -5,7 +5,8 @@ import { createHmac } from 'node:crypto';
 import { closeSync, createReadStream, openSync, readdirSync, readSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { getSetting } from './db.js';
-import { getCourse, getPublishedCourse } from './courses.js';
+import { hasEnrollment } from './enrollment.js';
+import { getPublishedCourse } from './courses.js';
 import { HttpError, constantTimeEqual, parseId, sendJson } from './http.js';
 
 export const VIDEO_FILENAME = /^[a-z0-9][a-z0-9-]{0,80}\.mp4$/;
@@ -21,9 +22,16 @@ export function checkWatchEligibility(db, user, courseId) {
   if (!user) {
     return { ok: false, status: 401, reason: 'login_required', message: '请先登录后再观看' };
   }
+  if (user.role !== 'student') {
+    return { ok: false, status: 403, reason: 'student_required', message: '观看仅面向已报名学员' };
+  }
+  courseId = parseId(courseId);
   const course = getPublishedCourse(db, courseId);
   if (!course) {
     return { ok: false, status: 404, reason: 'course_unavailable', message: '课程不存在或尚未发布' };
+  }
+  if (!hasEnrollment(db, user.id, courseId)) {
+    return { ok: false, status: 403, reason: 'enrollment_required', message: '请先报名后再观看', course };
   }
   return { ok: true, course };
 }
@@ -164,16 +172,17 @@ export function registerPlaybackRoutes(app) {
   const { router, config } = app;
 
   router.post('/api/courses/:id/play', (ctx) => {
-    const result = checkWatchEligibility(ctx.db, ctx.user, parseId(ctx.params.id));
+    const result = checkWatchEligibility(ctx.db, ctx.user, ctx.params.id);
     if (!result.ok) throw new HttpError(result.status, result.message);
     sendJson(ctx.res, 200, createPlaybackGrant(ctx.db, result.course.id, config.playbackTtlMs));
   });
 
-  // 已签发的地址在有效期内都可读取；media/ 中的文件不会以其他方式提供。
+  // 每次媒体请求重新检查当前身份、报名与发布状态，旧授权不能绕过资格。
   router.get('/media/:id', (ctx) => {
-    const courseId = parseId(ctx.params.id);
-    verifyPlaybackUrl(ctx.db, courseId, ctx.url.searchParams);
-    const course = getCourse(ctx.db, courseId);
+    const result = checkWatchEligibility(ctx.db, ctx.user, ctx.params.id);
+    if (!result.ok) throw new HttpError(result.status, result.message);
+    const course = result.course;
+    verifyPlaybackUrl(ctx.db, course.id, ctx.url.searchParams);
     if (!course || !VIDEO_FILENAME.test(course.video_file)) throw new HttpError(404, '视频不存在');
     const file = resolve(config.mediaDir, course.video_file);
     try {

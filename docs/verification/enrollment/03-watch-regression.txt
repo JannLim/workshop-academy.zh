@@ -1,0 +1,89 @@
+
+> workshop-academy@1.0.0 test
+> node --disable-warning=ExperimentalWarning --test "test/*.test.js"
+
+✔ 管理页面：未登录跳转登录，学员看到 403 页面 (244.738166ms)
+✔ 管理接口只对管理员开放 (112.274625ms)
+✔ 管理员创建草稿、修改并发布课程，目录随之变化 (141.004042ms)
+✔ 课程字段校验返回逐字段的中文提示 (99.432417ms)
+✔ 示例账号登录后取得 HttpOnly 会话，退出后会话失效 (222.888958ms)
+✔ 已登录时换账号登录，新会话替换旧会话 (138.084208ms)
+✔ 数据库只保存会话令牌的散列，过期会话无效 (101.305584ms)
+✔ 登录页提供示例账号；已登录时按安全的 next 跳转 (96.774417ms)
+✔ 请求体过大或不是 JSON 对象时拒绝 (67.103625ms)
+✔ 目录与详情只公开已发布课程 (145.936417ms)
+✔ 目录页与详情页渲染课程信息，草稿返回 HTML 404 页面 (110.664209ms)
+✔ 页面内容经过转义 (105.541ms)
+✔ 封面按课程编号确定生成像素 SVG (80.902375ms)
+✔ 新数据库执行全部迁移并写入示例数据，重复执行不改变数据 (154.222292ms)
+✔ 迁移状态列出待执行文件，执行失败的文件整体回滚 (22.498ms)
+✔ 已执行的迁移被修改、删除或新文件排在前面时拒绝迁移 (10.208458ms)
+✔ 报名迁移保留旧账号课程且不自动报名 (85.977584ms)
+✔ 报名接口按本人身份隔离，拒绝游客管理员及伪造归属 (242.352541ms)
+✔ 报名无名额限制且重复并发幂等，取消再报与下架列表 (179.725ms)
+Error: 测试写入失败
+    at Object.handler (file:///Users/linjuanjuan/Study/workshop-academy.zh/src/enrollment.js:39:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async handle (file:///Users/linjuanjuan/Study/workshop-academy.zh/src/app.js:287:7) {
+  code: 'ERR_SQLITE_ERROR',
+  errcode: 1811,
+  errstr: 'constraint failed'
+}
+Error: 测试取消失败
+    at Object.handler (file:///Users/linjuanjuan/Study/workshop-academy.zh/src/enrollment.js:41:85)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async handle (file:///Users/linjuanjuan/Study/workshop-academy.zh/src/app.js:287:7) {
+  code: 'ERR_SQLITE_ERROR',
+  errcode: 1811,
+  errstr: 'constraint failed'
+}
+✔ 报名请求保留 JSON 同源校验，失败写入不报告成功 (105.893166ms)
+✔ 备份会先请运行中的服务正常停止，再复制数据库 (429.8065ms)
+✔ 恢复要求服务已停止，校验快照并保留恢复前的数据库 (631.295667ms)
+✔ 新增迁移后：启动被拒绝，备份并迁移后保留原数据启动 (600.659791ms)
+✔ 同一数据目录不能启动第二个服务 (176.158208ms)
+✔ 每个源文件都带 SPDX 许可与版权声明 (60.432291ms)
+✔ 固定 Node.js 24 且没有 npm 依赖 (0.48725ms)
+✔ 页面返回带站点外壳的中文 HTML 和安全响应头 (112.987958ms)
+✖ 静态资源可协商缓存，不提供目录外或隐藏文件 (125.728ms)
+✔ 页面路由出错返回 HTML 错误页，接口出错返回中文 JSON (85.682084ms)
+✔ 非 GET 接口要求 JSON 与同源请求，并拒绝陌生 Host (78.884875ms)
+✔ 健康检查报告迁移状态 (76.47ms)
+✔ 运行记录只允许一个实例使用同一数据目录，失效记录自动清理 (73.1055ms)
+✔ 数据库有待执行的迁移时拒绝启动并保持数据不变 (65.70125ms)
+✔ 维护令牌可以请求正常停服，错误令牌被拒绝 (63.294958ms)
+✔ 示例视频齐全，时长与种子课程一致，体积小 (2.470542ms)
+✔ 取得播放地址需要登录且课程已发布 (183.762708ms)
+✔ 课程页按同一资格检查显示观看状态 (110.727958ms)
+✔ 签名地址支持范围请求，篡改的地址被拒绝 (117.546541ms)
+✔ 播放地址到期后返回 410，重新申请即可继续 (503.733042ms)
+✔ 课程的视频文件缺失时返回 404 (91.302625ms)
+✔ 观看矩阵统一检查身份报名和发布状态，旧地址立即失去资格 (176.287584ms)
+ℹ tests 41
+ℹ suites 0
+ℹ pass 40
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1960.729209
+
+✖ failing tests:
+
+test at test/server.test.js:30:1
+✖ 静态资源可协商缓存，不提供目录外或隐藏文件 (125.728ms)
+  AssertionError [ERR_ASSERTION]: /media/python-basics.mp4
+  
+  401 !== 404
+  
+      at TestContext.<anonymous> (file:///Users/linjuanjuan/Study/workshop-academy.zh/test/server.test.js:42:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 401,
+    expected: 404,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
