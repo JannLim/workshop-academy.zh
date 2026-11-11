@@ -98,3 +98,25 @@ test('已执行的迁移被修改、删除或新文件排在前面时拒绝迁�
   writeFileSync(join(migrations, '906-坏名字.sql'), 'SELECT 1;\n');
   assert.throws(() => applyMigrations(db, migrations), /文件名不符合/);
 });
+
+test('报名迁移保留旧账号课程且不自动报名', (t) => {
+  const db = openDatabase(databaseFile(tempDir(t)));
+  t.after(() => db.close());
+  const old = join(tempDir(t), 'migrations');
+  cpSync(defaultMigrationsDir, old, { recursive: true });
+  for (const file of readMigrationFiles(old)) if (file.filename !== '001-init.sql') unlinkSync(join(old, file.filename));
+  applyMigrations(db, old);
+  seedIfNeeded(db);
+  db.prepare("UPDATE courses SET title = '保留的课程' WHERE id = 1").run();
+  const users = db.prepare('SELECT * FROM users').all();
+  const courses = db.prepare('SELECT * FROM courses').all();
+  applyMigrations(db);
+  assert.ok(db.prepare("SELECT 1 FROM sqlite_master WHERE name = 'enrollments'").get(), '存在报名表');
+  assert.deepEqual(db.prepare('SELECT * FROM users').all(), users);
+  assert.deepEqual(db.prepare('SELECT * FROM courses').all(), courses);
+  assert.equal(db.prepare('SELECT count(*) AS n FROM enrollments').get().n, 0);
+  db.prepare('INSERT INTO enrollments (user_id, course_id, created_at) VALUES (2, 1, 1)').run();
+  assert.throws(() => db.prepare('INSERT INTO enrollments (user_id, course_id, created_at) VALUES (2, 1, 2)').run(), /UNIQUE/);
+  assert.throws(() => db.prepare('INSERT INTO enrollments (user_id, course_id, created_at) VALUES (999, 1, 2)').run(), /FOREIGN KEY/);
+  assert.deepEqual(applyMigrations(db), []);
+});

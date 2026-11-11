@@ -1,0 +1,32 @@
+✔ 新数据库执行全部迁移并写入示例数据，重复执行不改变数据 (92.479708ms)
+✔ 迁移状态列出待执行文件，执行失败的文件整体回滚 (3.961709ms)
+✔ 已执行的迁移被修改、删除或新文件排在前面时拒绝迁移 (2.649375ms)
+✖ 报名迁移保留旧账号课程且不自动报名 (54.6555ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 3
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 214.539917
+
+✖ failing tests:
+
+test at test/db.test.js:102:1
+✖ 报名迁移保留旧账号课程且不自动报名 (54.6555ms)
+  AssertionError [ERR_ASSERTION]: 存在报名表
+      at TestContext.<anonymous> (file:///Users/linjuanjuan/Study/workshop-academy.zh/test/db.test.js:114:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
