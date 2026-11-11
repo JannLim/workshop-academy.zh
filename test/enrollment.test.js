@@ -3,7 +3,12 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { client, login, startApp } from './helpers.js';
+import { mkdirSync, unlinkSync } from 'node:fs';
+import { join } from 'node:path';
+import { createSession, findSessionUser } from '../src/auth.js';
+import { applyMigrations, databaseFile, defaultMigrationsDir, openDatabase } from '../src/db.js';
+import { seedIfNeeded } from '../src/seed.js';
+import { client, copyDirectory, login, startApp, tempDir } from './helpers.js';
 
 async function enrollmentsOf(c) {
   const response = await c.get('/api/enrollments');
@@ -171,4 +176,67 @@ test('课程编辑不改变已有报名', async (t) => {
   const list = await enrollmentsOf(student);
   assert.equal(list.length, 1);
   assert.equal(list[0].courseId, 1);
+});
+
+test('报名在退出重登和服务重启后仍然有效', async (t) => {
+  const app = await startApp(t);
+  const student = client(app.url);
+  await login(student);
+  assert.equal((await student.post('/api/courses/1/enrollment')).status, 201);
+
+  assert.equal((await student.post('/api/logout')).status, 200);
+  await login(student);
+  assert.equal((await enrollmentsOf(student)).length, 1);
+
+  await app.stop();
+  const restarted = await startApp(t, { dataDir: app.config.dataDir });
+  const again = client(restarted.url);
+  await login(again);
+  assert.equal((await enrollmentsOf(again)).length, 1);
+  assert.equal((await again.post('/api/courses/1/play')).status, 200);
+  await restarted.stop();
+});
+
+test('取消后的报名在重启后不恢复', async (t) => {
+  const app = await startApp(t);
+  const student = client(app.url);
+  await login(student);
+  assert.equal((await student.post('/api/courses/1/enrollment')).status, 201);
+  assert.equal((await student.del('/api/courses/1/enrollment')).status, 200);
+
+  await app.stop();
+  const restarted = await startApp(t, { dataDir: app.config.dataDir });
+  const again = client(restarted.url);
+  await login(again);
+  assert.deepEqual(await enrollmentsOf(again), []);
+  await restarted.stop();
+});
+
+function dataSnapshot(db) {
+  return {
+    users: db.prepare('SELECT id, username, display_name, role FROM users ORDER BY id').all(),
+    courses: db.prepare('SELECT id, title, published, video_file FROM courses ORDER BY id').all(),
+    settings: db.prepare('SELECT key, value FROM settings ORDER BY key').all(),
+  };
+}
+
+test('升级到报名迁移保留既有账号、课程、会话和配置', (t) => {
+  const dir = tempDir(t);
+  const beforeMigrations = join(dir, 'migrations-before');
+  copyDirectory(defaultMigrationsDir, beforeMigrations);
+  unlinkSync(join(beforeMigrations, '002-enrollments.sql'));
+  mkdirSync(join(dir, 'data'), { recursive: true });
+
+  const db = openDatabase(databaseFile(join(dir, 'data')));
+  t.after(() => { try { db.close(); } catch { /* 已关闭 */ } });
+  assert.deepEqual(applyMigrations(db, beforeMigrations), ['001-init.sql']);
+  assert.equal(seedIfNeeded(db), true);
+  const token = createSession(db, 1);
+  const before = dataSnapshot(db);
+
+  assert.deepEqual(applyMigrations(db, defaultMigrationsDir), ['002-enrollments.sql']);
+  assert.deepEqual(dataSnapshot(db), before);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM enrollments').get().n, 0);
+  assert.ok(findSessionUser(db, token), '既有会话仍然有效');
+  assert.equal(seedIfNeeded(db), false, '升级不重复写入示例数据');
 });
