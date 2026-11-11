@@ -15,5 +15,6 @@ cookies.txt
 
 # 依赖与本机文件
 node_modules/
+.idea/
 .DS_Store
 *.log

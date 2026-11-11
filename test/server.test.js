@@ -101,7 +101,7 @@ test('运行记录只允许一个实例使用同一数据目录，失效记录�
   assert.equal(info.pid, process.pid);
   assert.equal(info.url, app.url);
   assert.match(info.token, /^[0-9a-f]{64}$/);
-  assert.equal(statSync(runFilePath(dataDir)).mode & 0o777, 0o600);
+  if (process.platform !== 'win32') assert.equal(statSync(runFilePath(dataDir)).mode & 0o777, 0o600);
 
   const second = createApp({ dataDir, port: 0 });
   await assert.rejects(second.start(), (error) => error.code === 'already_running' && /已有学堂在运行/.test(error.message));

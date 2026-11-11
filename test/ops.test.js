@@ -122,7 +122,9 @@ test('恢复要求服务已停止，校验快照并保留恢复前的数据库',
   assert.equal(refused.code, 1);
   assert.match(refused.stderr, /学堂仍在运行/);
   server.child.kill('SIGINT');
-  assert.equal(await server.exited, 0);
+  const exitCode = await server.exited;
+  if (process.platform === 'win32') assert.ok(exitCode === 0 || exitCode === null, String(exitCode));
+  else assert.equal(exitCode, 0);
 
   const junk = join(env.BACKUP_DIR, 'not-a-database.sqlite');
   writeFileSync(junk, 'hello');
