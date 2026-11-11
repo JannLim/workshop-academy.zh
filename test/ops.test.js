@@ -12,7 +12,7 @@ import { once } from 'node:events';
 import { promisify } from 'node:util';
 import { DatabaseSync } from 'node:sqlite';
 import { defaultMigrationsDir, projectRoot, readMigrationFiles } from '../src/db.js';
-import { client, login, tempDir } from './helpers.js';
+import { client, copyDirectory, login, tempDir } from './helpers.js';
 
 const execFileAsync = promisify(execFile);
 const NODE_ARGS = ['--disable-warning=ExperimentalWarning'];
@@ -20,7 +20,7 @@ const NODE_ARGS = ['--disable-warning=ExperimentalWarning'];
 /** 复制一份项目（不含数据），在副本里演练迁移，不影响仓库本身。 */
 function projectCopy(t) {
   const root = tempDir(t, 'academy-project-');
-  for (const dir of ['src', 'scripts', 'migrations', 'public']) cpSync(resolve(projectRoot, dir), join(root, dir), { recursive: true });
+  for (const dir of ['src', 'scripts', 'migrations', 'public']) copyDirectory(resolve(projectRoot, dir), join(root, dir));
   cpSync(resolve(projectRoot, 'package.json'), join(root, 'package.json'));
   return root;
 }

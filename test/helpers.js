@@ -1,22 +1,48 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 SubLang International <https://sublang.ai>
 
-import { mkdtempSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApp } from '../src/app.js';
 
+/**
+ * 删除测试临时目录。Windows 上 SQLite 或子进程可能仍占用文件，
+ * 这时重试几次；仍失败就留给系统清理，避免把清理失败误报成测试失败。
+ */
+export function removeTempDir(dir) {
+  try {
+    rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  } catch (error) {
+    if (!['EPERM', 'EBUSY', 'ENOTEMPTY'].includes(error.code)) throw error;
+  }
+}
+
 export function tempDir(t, prefix = 'academy-test-') {
   const dir = mkdtempSync(join(tmpdir(), prefix));
-  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  t.after(() => removeTempDir(dir));
   return dir;
+}
+
+/** 逐文件复制目录；避开部分 Node 版本在 Windows 上递归 cpSync 的原生崩溃。 */
+export function copyDirectory(source, target) {
+  mkdirSync(target, { recursive: true });
+  for (const entry of readdirSync(source, { withFileTypes: true })) {
+    const from = join(source, entry.name);
+    const to = join(target, entry.name);
+    if (entry.isDirectory()) copyDirectory(from, to);
+    else if (entry.isFile()) copyFileSync(from, to);
+  }
 }
 
 /** 在临时数据目录、随机端口上启动真实服务，测试结束后停止。 */
 export async function startApp(t, options = {}) {
-  const app = createApp({ dataDir: options.dataDir ?? tempDir(t), port: 0, ...options });
-  await app.start();
+  const ownsDir = options.dataDir === undefined;
+  const dataDir = options.dataDir ?? mkdtempSync(join(tmpdir(), 'academy-test-'));
+  const app = createApp({ dataDir, port: 0, ...options });
   t.after(() => app.stop());
+  if (ownsDir) t.after(() => removeTempDir(dataDir));
+  await app.start();
   return app;
 }
 

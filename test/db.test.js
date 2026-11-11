@@ -3,27 +3,21 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cpSync, mkdtempSync, rmSync, writeFileSync, appendFileSync, unlinkSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync, appendFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   applyMigrations, databaseFile, defaultMigrationsDir, migrationStatus, openDatabase, readMigrationFiles, MigrationError,
 } from '../src/db.js';
 import { seedIfNeeded, DEMO_PASSWORD } from '../src/seed.js';
 import { verifyPassword } from '../src/auth.js';
-
-function tempDir(t) {
-  const dir = mkdtempSync(join(tmpdir(), 'academy-db-'));
-  t.after(() => rmSync(dir, { recursive: true, force: true }));
-  return dir;
-}
+import { copyDirectory, tempDir } from './helpers.js';
 
 // 项目自带的迁移；课上新增迁移后测试照样成立。测试用的迁移编号从 900 起，不与项目文件冲突。
 const baseline = readMigrationFiles(defaultMigrationsDir).map((m) => m.filename);
 
 function copyMigrations(t) {
   const dir = join(tempDir(t), 'migrations');
-  cpSync(defaultMigrationsDir, dir, { recursive: true });
+  copyDirectory(defaultMigrationsDir, dir);
   return dir;
 }
 

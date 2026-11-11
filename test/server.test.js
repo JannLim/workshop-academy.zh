@@ -4,11 +4,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { request as httpRequest } from 'node:http';
-import { cpSync, existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createApp, readRunInfo, runFilePath } from '../src/app.js';
 import { defaultMigrationsDir, readMigrationFiles } from '../src/db.js';
-import { client, startApp, tempDir } from './helpers.js';
+import { client, copyDirectory, startApp, tempDir } from './helpers.js';
 
 test('页面返回带站点外壳的中文 HTML 和安全响应头', async (t) => {
   const app = await startApp(t);
@@ -119,7 +119,7 @@ test('运行记录只允许一个实例使用同一数据目录，失效记录�
 test('数据库有待执行的迁移时拒绝启动并保持数据不变', async (t) => {
   const dataDir = tempDir(t);
   const migrationsDir = join(tempDir(t), 'migrations');
-  cpSync(defaultMigrationsDir, migrationsDir, { recursive: true });
+  copyDirectory(defaultMigrationsDir, migrationsDir);
   const first = await startApp(t, { dataDir, migrationsDir });
   await first.stop();
 
