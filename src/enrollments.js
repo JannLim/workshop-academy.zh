@@ -3,7 +3,8 @@
 
 import { requireUser } from './auth.js';
 import { getPublishedCourse } from './courses.js';
-import { HttpError, parseId, sendJson } from './http.js';
+import { HttpError, parseId, redirect, sendHtml, sendJson } from './http.js';
+import { enrollmentsPage } from './views/enrollments.js';
 
 /** 当前账号对某课程的报名；不存在时返回 null。 */
 export function getEnrollment(db, userId, courseId) {
@@ -60,6 +61,18 @@ export function cancelEnrollment(db, userId, courseId) {
 
 export function registerEnrollmentRoutes(app) {
   const { router } = app;
+
+  router.get('/enrollments', (ctx) => {
+    if (!ctx.user) {
+      redirect(ctx.res, `/login?next=${encodeURIComponent('/enrollments')}`);
+      return;
+    }
+    sendHtml(ctx.res, 200, enrollmentsPage({
+      user: ctx.user,
+      path: ctx.path,
+      enrollments: listEnrollments(ctx.db, ctx.user.id).map(publicEnrollment),
+    }));
+  });
 
   router.get('/api/enrollments', (ctx) => {
     requireUser(ctx);

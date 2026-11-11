@@ -115,6 +115,50 @@ test('我的报名保留已下架课程，重新发布后恢复详情入口', as
   assert.equal(shown[0].url, '/courses/1');
 });
 
+test('我的报名页面要求登录并渲染自己的报名', async (t) => {
+  const app = await startApp(t);
+  const guest = client(app.url);
+  const redirect = await guest.get('/enrollments');
+  assert.equal(redirect.status, 302);
+  assert.equal(redirect.headers.get('location'), '/login?next=%2Fenrollments');
+
+  const student = client(app.url);
+  await login(student);
+  const empty = await student.get('/enrollments');
+  assert.equal(empty.status, 200);
+  const emptyHtml = await empty.text();
+  assert.match(emptyHtml, /还没有报名/);
+  assert.match(emptyHtml, /href="\/enrollments"[^>]*aria-current="page"/);
+
+  assert.equal((await student.post('/api/courses/1/enrollment')).status, 201);
+  const page = await student.get('/enrollments');
+  assert.equal(page.status, 200);
+  const html = await page.text();
+  assert.match(html, /Python 入门：写出第一个程序/);
+  assert.match(html, /已发布/);
+  assert.match(html, /href="\/courses\/1"/);
+  assert.match(html, /data-action="cancel-enrollment"/);
+  assert.match(html, /报名于/);
+});
+
+test('我的报名页面保留已下架课程且不提供详情入口', async (t) => {
+  const app = await startApp(t);
+  const admin = client(app.url);
+  const student = client(app.url);
+  await login(admin, 'admin');
+  await login(student, 'student');
+  assert.equal((await student.post('/api/courses/1/enrollment')).status, 201);
+  assert.equal((await admin.patch('/api/admin/courses/1', { published: false })).status, 200);
+
+  const page = await student.get('/enrollments');
+  assert.equal(page.status, 200);
+  const html = await page.text();
+  assert.match(html, /Python 入门：写出第一个程序/);
+  assert.match(html, /已下架/);
+  assert.doesNotMatch(html, /href="\/courses\/1"/);
+  assert.match(html, /data-action="cancel-enrollment"/);
+});
+
 test('课程编辑不改变已有报名', async (t) => {
   const app = await startApp(t);
   const admin = client(app.url);

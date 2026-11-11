@@ -586,6 +586,25 @@ select.input {
 .admin-row-message[data-kind="danger"] { color: var(--danger); }
 .admin-row-message[data-kind="danger"]::before { background: var(--danger); }
 
+/* ---------- 我的报名 ---------- */
+.enrollment-page > .callout { margin-top: 20px; }
+.enrollment-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 18px; }
+.enrollment-row {
+  display: grid;
+  grid-template-columns: 128px minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: center;
+  padding: 16px 20px 16px 16px;
+}
+.enrollment-row[data-status="unpublished"] { background-image: repeating-conic-gradient(rgba(21, 22, 26, 0.035) 0 25%, transparent 0 50%); background-size: 4px 4px; }
+.enrollment-cover { width: 128px; height: 72px; object-fit: cover; image-rendering: pixelated; background: var(--deep); }
+.enrollment-main { display: grid; gap: 4px; min-width: 0; }
+.enrollment-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.enrollment-title { font-size: 1.08rem; line-height: 1.45; }
+.enrollment-meta { font-size: 0.86rem; color: var(--ink-muted); }
+.enrollment-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px 6px; }
+.enrollment-actions .btn { margin-bottom: var(--px); }
+
 .form-page { max-width: calc(820px + 2 * var(--gutter)); }
 .course-form { gap: 22px; padding: 32px; }
 .form-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 220px); gap: 22px; }
@@ -626,6 +645,9 @@ select.input {
   .admin-meta { column-gap: 12px; }
   .admin-meta > span + span::before { content: none; }
   .admin-actions { grid-column: 1 / -1; justify-content: flex-start; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+  .enrollment-row { grid-template-columns: 96px minmax(0, 1fr); gap: 14px 16px; padding: 14px; }
+  .enrollment-cover { width: 96px; height: 54px; align-self: start; }
+  .enrollment-actions { grid-column: 1 / -1; justify-content: flex-start; padding-top: 10px; border-top: 1px solid var(--line-soft); }
   .course-form { padding: 22px 18px; }
   .form-grid { grid-template-columns: 1fr; }
   .player-overlay { padding: 12px; }

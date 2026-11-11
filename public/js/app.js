@@ -249,6 +249,32 @@
     });
   };
 
+  // ---------- 我的报名：取消报名 ----------
+  pages.enrollments = () => {
+    const list = document.querySelector('[data-enrollment-list]');
+    if (!list) return;
+    const message = document.getElementById('enrollment-message');
+    list.addEventListener('click', async (event) => {
+      const button = event.target.closest('[data-action="cancel-enrollment"]');
+      if (!button) return;
+      const courseId = button.dataset.courseId;
+      if (!courseId) return;
+      setBusy(button, true);
+      showMessage(message, '');
+      try {
+        await api(`/api/courses/${courseId}/enrollment`, { method: 'DELETE' });
+        window.location.reload();
+      } catch (error) {
+        setBusy(button, false);
+        if (error.status === 401) {
+          window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+          return;
+        }
+        showMessage(message, error.message, 'danger');
+      }
+    });
+  };
+
   // ---------- 课程管理：发布与取消发布 ----------
   // 与服务端 views/format.js 的 formatDateTime 相同：2026-11-08 19:31（本机时间）。
   function formatDateTime(ms) {
