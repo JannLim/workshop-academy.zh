@@ -6,6 +6,7 @@ import { closeSync, createReadStream, openSync, readdirSync, readSync, statSync 
 import { resolve } from 'node:path';
 import { getSetting } from './db.js';
 import { getCourse, getPublishedCourse } from './courses.js';
+import { hasEnrollment } from './enrollments.js';
 import { HttpError, constantTimeEqual, parseId, sendJson } from './http.js';
 
 export const VIDEO_FILENAME = /^[a-z0-9][a-z0-9-]{0,80}\.mp4$/;
@@ -25,6 +26,9 @@ export function checkWatchEligibility(db, user, courseId) {
   if (!course) {
     return { ok: false, status: 404, reason: 'course_unavailable', message: '课程不存在或尚未发布' };
   }
+  if (!hasEnrollment(db, user.id, course.id)) {
+    return { ok: false, status: 403, reason: 'enrollment_required', message: '请先报名后再观看' };
+  }
   return { ok: true, course };
 }
 
@@ -33,6 +37,7 @@ export function watchStateForPage(ctx, course) {
   const result = checkWatchEligibility(ctx.db, ctx.user, course.id);
   if (result.ok) return { state: 'ready' };
   if (result.reason === 'login_required') return { state: 'login' };
+  if (result.reason === 'enrollment_required') return { state: 'enroll' };
   return { state: 'blocked', message: result.message };
 }
 

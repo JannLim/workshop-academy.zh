@@ -18,6 +18,14 @@ function playerOverlay(course, watch, path) {
       <a class="btn btn-primary btn-lg" href="${loginHref(path)}">去登录</a>
     </div>`;
   }
+  if (watch.state === 'enroll') {
+    return html`<div class="player-state">
+      <span class="pixel-icon pixel-lock" aria-hidden="true"></span>
+      <p class="player-title">报名后观看视频</p>
+      <p class="player-note">报名后即可取得播放地址</p>
+      <button class="btn btn-primary btn-lg" type="button" data-action="enroll" data-course-id="${course.id}">立即报名</button>
+    </div>`;
+  }
   if (watch.state === 'ready') {
     return html`<div class="player-state">
       <button class="play-button" type="button" data-action="watch" aria-describedby="player-message">

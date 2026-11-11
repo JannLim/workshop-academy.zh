@@ -166,6 +166,25 @@
   // 这时静默申请新地址，并从当前进度继续播放。
   pages.course = () => {
     const player = document.querySelector('.player');
+    const enrollButton = player && player.querySelector('[data-action="enroll"]');
+    if (enrollButton) {
+      enrollButton.addEventListener('click', async () => {
+        const message = document.getElementById('player-message');
+        setBusy(enrollButton, true);
+        showMessage(message, '');
+        try {
+          await api(`/api/courses/${player.dataset.courseId}/enrollment`, { method: 'POST' });
+          window.location.reload();
+        } catch (error) {
+          setBusy(enrollButton, false);
+          if (error.status === 401) {
+            window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+            return;
+          }
+          showMessage(message, error.message, 'danger');
+        }
+      });
+    }
     const button = player && player.querySelector('[data-action="watch"]');
     if (!button) return;
     const video = player.querySelector('video');

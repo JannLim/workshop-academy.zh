@@ -111,6 +111,7 @@ test('管理员创建草稿、修改并发布课程，目录随之变化', async
 
   const student = client(app.url);
   await login(student);
+  assert.equal((await student.post(`/api/courses/${course.id}/enrollment`)).status, 201);
   assert.equal((await student.post(`/api/courses/${course.id}/play`)).status, 200);
 
   assert.equal((await admin.patch(`/api/admin/courses/${course.id}`, { published: false })).status, 200);

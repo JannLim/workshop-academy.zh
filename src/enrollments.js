@@ -2,7 +2,6 @@
 // SPDX-FileCopyrightText: 2026 liyan <1982119376@qq.com>
 
 import { requireUser } from './auth.js';
-import { getPublishedCourse } from './courses.js';
 import { HttpError, parseId, redirect, sendHtml, sendJson } from './http.js';
 import { enrollmentsPage } from './views/enrollments.js';
 
@@ -43,7 +42,7 @@ function enrollmentRow(db, userId, courseId) {
 
 /** 报名已发布课程；重复报名成功且不新增记录。 */
 export function createEnrollment(db, userId, courseId, now = Date.now()) {
-  const course = getPublishedCourse(db, courseId);
+  const course = db.prepare('SELECT id FROM courses WHERE id = ? AND published = 1').get(courseId);
   if (!course) throw new HttpError(404, '课程不存在或尚未发布');
   const result = db.prepare(`INSERT INTO enrollments (user_id, course_id, created_at)
     VALUES (?, ?, ?) ON CONFLICT (user_id, course_id) DO NOTHING`).run(userId, courseId, now);

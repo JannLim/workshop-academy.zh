@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// SPDX-FileCopyrightText: 2026 SubLang International <https://sublang.ai>
+// SPDX-FileCopyrightText: 2026 liyan <1982119376@qq.com>
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -13,6 +13,11 @@ import { client, login, startApp } from './helpers.js';
 
 const mediaDir = resolve(projectRoot, 'media');
 
+async function enroll(c, courseId) {
+  const response = await c.post(`/api/courses/${courseId}/enrollment`);
+  assert.ok([200, 201].includes(response.status), String(response.status));
+}
+
 test('示例视频齐全，时长与种子课程一致，体积小', () => {
   const videos = listVideos(mediaDir);
   assert.deepEqual(videos.map((v) => v.file).sort(), demoCourses.map((c) => c.videoFile).sort());
@@ -23,12 +28,13 @@ test('示例视频齐全，时长与种子课程一致，体积小', () => {
   }
 });
 
-test('取得播放地址需要登录且课程已发布', async (t) => {
+test('取得播放地址需要登录、有效报名且课程已发布', async (t) => {
   const app = await startApp(t);
   const guest = client(app.url);
   const anonymous = await guest.post('/api/courses/1/play');
   assert.equal(anonymous.status, 401);
   assert.deepEqual(await anonymous.json(), { error: '请先登录后再观看' });
+  assert.equal((await guest.post('/api/courses/999/play')).status, 401, '未登录先提示登录');
 
   const student = client(app.url);
   await login(student);
@@ -37,6 +43,11 @@ test('取得播放地址需要登录且课程已发布', async (t) => {
     assert.equal(response.status, 404, String(id));
     assert.equal((await response.json()).error, '课程不存在或尚未发布');
   }
+  const denied = await student.post('/api/courses/1/play');
+  assert.equal(denied.status, 403);
+  assert.deepEqual(await denied.json(), { error: '请先报名后再观看' });
+
+  await enroll(student, 1);
   const before = Date.now();
   const response = await student.post('/api/courses/1/play');
   assert.equal(response.status, 200);
@@ -55,9 +66,16 @@ test('课程页按同一资格检查显示观看状态', async (t) => {
   const guest = await (await fetch(`${app.url}/courses/2`)).text();
   assert.match(guest, /data-state="login"/);
   assert.doesNotMatch(guest, /data-action="watch"/);
+  assert.doesNotMatch(guest, /data-action="enroll"/);
 
   const student = client(app.url);
   await login(student);
+  const unenrolled = await (await student.get('/courses/2')).text();
+  assert.match(unenrolled, /data-state="enroll"/);
+  assert.match(unenrolled, /data-action="enroll"/);
+  assert.doesNotMatch(unenrolled, /data-action="watch"/);
+
+  await enroll(student, 2);
   const page = await (await student.get('/courses/2')).text();
   assert.match(page, /data-state="ready"/);
   assert.match(page, /data-action="watch"/);
@@ -65,10 +83,29 @@ test('课程页按同一资格检查显示观看状态', async (t) => {
   assert.doesNotMatch(page, /\/media\//, '页面本身不含播放地址');
 });
 
+test('未报名账号仍可浏览课程详情', async (t) => {
+  const app = await startApp(t);
+  const student = client(app.url);
+  await login(student);
+  const page = await student.get('/courses/1');
+  assert.equal(page.status, 200);
+  assert.match(await page.text(), /Python 入门：写出第一个程序/);
+});
+
+test('管理员没有观看豁免，报名后才能取得播放地址', async (t) => {
+  const app = await startApp(t);
+  const admin = client(app.url);
+  await login(admin, 'admin');
+  assert.equal((await admin.post('/api/courses/1/play')).status, 403);
+  await enroll(admin, 1);
+  assert.equal((await admin.post('/api/courses/1/play')).status, 200);
+});
+
 test('签名地址支持范围请求，篡改的地址被拒绝', async (t) => {
   const app = await startApp(t);
   const student = client(app.url);
   await login(student);
+  await enroll(student, 1);
   const { url } = await (await student.post('/api/courses/1/play')).json();
   const size = statSync(resolve(mediaDir, 'python-basics.mp4')).size;
 
@@ -127,6 +164,7 @@ test('播放地址到期后返回 410，重新申请即可继续', async (t) => 
   const app = await startApp(t, { playbackTtlMs: 300 });
   const student = client(app.url);
   await login(student);
+  await enroll(student, 3);
   const first = await (await student.post('/api/courses/3/play')).json();
   assert.equal((await fetch(`${app.url}${first.url}`, { headers: { range: 'bytes=0-1' } })).status, 206);
   await sleep(400);
@@ -137,10 +175,46 @@ test('播放地址到期后返回 410，重新申请即可继续', async (t) => 
   assert.equal((await fetch(`${app.url}${renewed.url}`, { headers: { range: 'bytes=2-3' } })).status, 206);
 });
 
+test('取消报名后停止签发新地址，已签发地址到期前仍可读', async (t) => {
+  const app = await startApp(t, { playbackTtlMs: 500 });
+  const student = client(app.url);
+  await login(student);
+  await enroll(student, 1);
+  const grant = await (await student.post('/api/courses/1/play')).json();
+  assert.equal((await fetch(`${app.url}${grant.url}`, { headers: { range: 'bytes=0-1' } })).status, 206);
+
+  assert.equal((await student.del('/api/courses/1/enrollment')).status, 200);
+  const denied = await student.post('/api/courses/1/play');
+  assert.equal(denied.status, 403);
+  assert.deepEqual(await denied.json(), { error: '请先报名后再观看' });
+  assert.equal((await fetch(`${app.url}${grant.url}`, { headers: { range: 'bytes=0-1' } })).status, 206, '已签发地址到期前仍可读');
+
+  await sleep(700);
+  assert.equal((await fetch(`${app.url}${grant.url}`, { headers: { range: 'bytes=2-3' } })).status, 410);
+});
+
+test('课程下架停止新播放地址，重新发布无需重新报名', async (t) => {
+  const app = await startApp(t, { playbackTtlMs: 5000 });
+  const admin = client(app.url);
+  const student = client(app.url);
+  await login(admin, 'admin');
+  await login(student, 'student');
+  await enroll(student, 1);
+  const grant = await (await student.post('/api/courses/1/play')).json();
+
+  assert.equal((await admin.patch('/api/admin/courses/1', { published: false })).status, 200);
+  assert.equal((await student.post('/api/courses/1/play')).status, 404);
+  assert.equal((await fetch(`${app.url}${grant.url}`, { headers: { range: 'bytes=0-1' } })).status, 206);
+
+  assert.equal((await admin.patch('/api/admin/courses/1', { published: true })).status, 200);
+  assert.equal((await student.post('/api/courses/1/play')).status, 200, '重新发布后无需重新报名');
+});
+
 test('课程的视频文件缺失时返回 404', async (t) => {
   const app = await startApp(t);
   const student = client(app.url);
   await login(student);
+  await enroll(student, 2);
   app.db.prepare("UPDATE courses SET video_file = 'missing-video.mp4' WHERE id = 2").run();
   const { url } = await (await student.post('/api/courses/2/play')).json();
   const response = await fetch(`${app.url}${url}`);
