@@ -19,10 +19,11 @@
 | 200 / 201 | 成功 / 已创建 |
 | 400 | 请求内容不合法 |
 | 401 | 需要登录 |
-| 403 | 没有权限，或播放地址签名无效 |
-| 404 | 不存在或未发布 |
+| 403 | 没有权限、未报名，或播放地址签名无效 |
+| 404 | 不存在、未发布或视频缺失 |
 | 410 | 播放地址已过期 |
 | 413 / 415 | 请求体过大 / 不是 JSON |
+| 416 | 请求的视频范围无效 |
 
 ## 账号与会话
 
@@ -61,18 +62,47 @@ curl -s http://localhost:3000/api/courses
 curl -s http://localhost:3000/api/courses/1
 ```
 
+## 报名
+
+登录后可以为已发布课程报名，报名人数不限，重复报名不新增记录。
+报名和取消都只作用于当前登录账号，不能指定其他账号或报名编号。
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `POST` | `/api/courses/:id/enrollment` | 报名；新建返回 201，已报名返回 200；未登录 401，课程不存在或未发布 404 |
+| `DELETE` | `/api/courses/:id/enrollment` | 取消报名；重复取消返回 200；未登录 401 |
+| `GET` | `/api/enrollments` | 当前账号的报名列表 `{"enrollments": [...]}`；未登录 401 |
+
+报名列表字段：`courseId`、`title`、`status`（`published` 或 `unpublished`）、`enrolledAt`（毫秒时间戳）、`url`（仅已发布课程）。
+已下架课程保留在列表中，但不提供 `url`，也不能取得播放地址。
+
+```sh
+curl -s -b cookies.txt -c cookies.txt -H 'Content-Type: application/json' \
+  -d '{}' http://localhost:3000/api/courses/1/enrollment
+
+curl -s -b cookies.txt http://localhost:3000/api/enrollments
+
+curl -s -b cookies.txt -c cookies.txt -X DELETE -H 'Content-Type: application/json' \
+  -d '{}' http://localhost:3000/api/courses/1/enrollment
+```
+
 ## 观看
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| `POST` | `/api/courses/:id/play` | 取得播放地址 `{"url", "expiresAt"}`；未登录 401，课程不存在或未发布 404 |
+| `POST` | `/api/courses/:id/play` | 取得播放地址 `{"url", "expiresAt"}`；未登录 401，未报名 403，课程不存在或未发布 404 |
 | `GET` / `HEAD` | `/media/:id?expires=…&signature=…` | 读取视频，支持 `Range`；签名无效 403，已过期 410，视频缺失 404 |
 
 观看资格只在签发播放地址时检查，页面的“开始观看”按钮和直接调用接口经过同一个检查（`src/playback.js` 中的 `checkWatchEligibility`）。
-播放地址默认 60 秒内有效，地址本身就是授权，不需要 cookie；已签发的地址在到期前都可读取，即使课程随后被取消发布。
+取得播放地址前必须先登录并报名；管理员没有观看豁免，也需要为自己报名。
+播放地址默认 60 秒内有效，地址本身就是授权，不需要 cookie；已签发的地址在到期前都可读取，即使报名随后被取消或课程被取消发布。
+取消报名或课程下架后不再签发新地址；地址过期后重新申请会按当时的报名和课程状态判断。
 页面播放时如果地址过期，会自动重新申请并从当前进度继续。
 
 ```sh
+curl -s -b cookies.txt -c cookies.txt -H 'Content-Type: application/json' \
+  -d '{}' http://localhost:3000/api/courses/1/enrollment
+
 curl -s -b cookies.txt -X POST -H 'Content-Type: application/json' \
   http://localhost:3000/api/courses/1/play
 # {"url":"/media/1?expires=1794190000000&signature=…","expiresAt":1794190000000}
@@ -137,6 +167,7 @@ curl -s -b admin.txt -X PATCH -H 'Content-Type: application/json' \
 | --- | --- |
 | `/` | 课程目录 |
 | `/courses/:id` | 课程详情与播放 |
+| `/enrollments` | 我的报名（需登录） |
 | `/login?next=/…` | 登录，成功后回到站内地址 `next` |
 | `/login?switch=1&next=/…` | 已登录时也显示登录表单（403 页的“换个账号登录”），新会话替换旧会话 |
 | `/admin` | 课程管理（管理员） |
