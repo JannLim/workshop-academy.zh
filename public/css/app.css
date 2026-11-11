@@ -666,3 +666,18 @@ select.input {
 @media (forced-colors: active) {
   .btn, .card, .panel, .badge, .tag { border: 1px solid CanvasText; }
 }
+
+/* 个人报名沿用课程页面的像素面板与主色。 */
+.enrollment-page { padding-block: 48px; }
+.enrollment-list { list-style: none; padding: 0; margin: 28px 0; display: grid; gap: 18px; }
+.enrollment-list[hidden], #enrollment-empty[hidden] { display: none; }
+.enrollment-row { display: flex; align-items: center; gap: 24px; padding: 20px; }
+.enrollment-row img { flex-shrink: 0; image-rendering: pixelated; }
+.enrollment-info { flex: 1; min-width: 0; }
+.enrollment-info h2 { font-size: 1.15rem; margin: 0 0 12px; overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .enrollment-row { flex-wrap: wrap; gap: 16px; }
+  .enrollment-row img { width: 100px; height: auto; }
+  .enrollment-row .actions { width: 100%; }
+  .site-header .header-inner { flex-wrap: wrap; }
+}

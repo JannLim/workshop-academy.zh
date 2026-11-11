@@ -1,0 +1,35 @@
+SPDX-License-Identifier: Apache-2.0
+SPDX-FileCopyrightText: 2026 SubLang International <https://sublang.ai>
+
+执行时间：2026-11-11 16:58 +0800
+代码基线：c0040be，加工作区未提交改动。
+环境：Node.js v24.22.2；npm 11.19.1；spex 6.0.0。
+使用已有 /private/tmp/node-v24.22.2-darwin-arm64/bin 中的 Node.js。
+
+执行：node --disable-warning=ExperimentalWarning --test test/ops.test.js
+结果：7 项通过，0 失败，0 跳过，退出码 0。
+首次沙箱执行因禁止监听 127.0.0.1 返回 EPERM；获准在沙箱外重跑后通过。
+该失败为环境限制，不作为业务缺陷的失败测试证据。
+
+执行：npm test
+结果：45 项通过，0 失败，0 跳过，退出码 0。
+完整输出：05-ops-regression.txt。
+
+执行：spex lint
+结果：spex lint: no problems found；退出码 0。
+执行：git diff --check
+结果：无输出；退出码 0。
+
+本次新增覆盖：
+continuity-7：报名与取消经退出重登、账号切换和进程重启保持归属，失败写入整体回滚。
+continuity-8：报名升级演练保留旧库全部业务字段、修改后的凭据与自建课程。
+continuity-10：报名与取消经退出重登、账号切换和进程重启保持归属，失败写入整体回滚。
+continuity-11 的报名快照部分：报名快照恢复有效与已取消状态，后续变化仅存在于恢复前副本。
+旧快照补迁移：报名升级演练保留旧库全部业务字段、修改后的凭据与自建课程。
+已有维护测试同时回归；本记录不宣称完整 44 条验证已完成。
+
+所有演练由 test/helpers.js 创建临时数据目录，并由测试清理。
+未读取或迁移当前 data/，未修改既有迁移，未增加依赖。
+本次修改：test/ops.test.js、docs/operations.md、IR-001 及本轮证据。
+保留已有页面和 SPDX 意图记录的未提交修改。
+未执行：真实浏览器交互、禁止外网 npm start、完整验证映射。

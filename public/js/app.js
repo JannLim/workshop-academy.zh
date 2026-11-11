@@ -166,6 +166,17 @@
   // 这时静默申请新地址，并从当前进度继续播放。
   pages.course = () => {
     const player = document.querySelector('.player');
+    const enrollButton = player && player.querySelector('[data-action="enroll"]');
+    if (enrollButton) enrollButton.addEventListener('click', async () => {
+      setBusy(enrollButton, true);
+      try {
+        await api(`/api/courses/${player.dataset.courseId}/enrollment`, { method: 'POST' });
+        window.location.reload();
+      } catch (error) {
+        showMessage(document.getElementById('player-message'), error.message, 'danger');
+        setBusy(enrollButton, false);
+      }
+    });
     const button = player && player.querySelector('[data-action="watch"]');
     if (!button) return;
     const video = player.querySelector('video');
@@ -201,6 +212,8 @@
         video.hidden = false;
         player.dataset.state = 'playing';
         video.focus();
+        setBusy(button, false);
+        label.textContent = '开始观看';
         try {
           await video.play();
         } catch {
@@ -245,6 +258,29 @@
         explain(error);
       } finally {
         renewing = false;
+      }
+    });
+  };
+
+  pages.enrollments = () => {
+    const list = document.querySelector('.enrollment-list');
+    const message = document.getElementById('enrollment-message');
+    list.addEventListener('click', async (event) => {
+      const button = event.target.closest('[data-action="cancel-enrollment"]');
+      if (!button) return;
+      const row = button.closest('[data-course-id]');
+      if (!window.confirm('取消报名后将失去观看资格，确定取消吗？')) return;
+      setBusy(button, true);
+      try {
+        await api(`/api/courses/${row.dataset.courseId}/enrollment`, { method: 'DELETE' });
+        row.remove();
+        const empty = !list.children.length;
+        list.hidden = empty;
+        document.getElementById('enrollment-empty').hidden = !empty;
+        showMessage(message, '已取消报名，可在课程发布期间重新报名。', 'success');
+      } catch (error) {
+        showMessage(message, error.message, 'danger');
+        setBusy(button, false);
       }
     });
   };

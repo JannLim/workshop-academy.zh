@@ -41,6 +41,7 @@ export function watchStateForPage(ctx, course) {
   const result = checkWatchEligibility(ctx.db, ctx.user, course.id);
   if (result.ok) return { state: 'ready' };
   if (result.reason === 'login_required') return { state: 'login' };
+  if (result.reason === 'enrollment_required') return { state: 'enroll' };
   return { state: 'blocked', message: result.message };
 }
 

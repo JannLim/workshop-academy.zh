@@ -46,6 +46,7 @@ export function layout({ title, page, user = null, path = '/', content }) {
     <a class="brand" href="/" aria-label="学堂在线首页">${logo()}<span class="brand-name">学堂在线</span></a>
     <nav class="site-nav" aria-label="主导航">
       ${navLink('/', '目录', section === 'catalog')}
+      ${user?.role === 'student' ? html`<a class="nav-link" href="/enrollments"${path === '/enrollments' ? html` aria-current="page"` : ''}>我的报名</a>` : ''}
       ${user?.role === 'admin' ? navLink('/admin', '管理', section === 'admin') : ''}
     </nav>
     <div class="header-actions">

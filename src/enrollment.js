@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2026 linjuanjuan <jann_lim@163.com>
 
+import { enrollmentsPage } from './views/enrollments.js';
 import { requireUser } from './auth.js';
-import { HttpError, parseId, readJson, sendJson } from './http.js';
+import { HttpError, parseId, readJson, sendJson, sendHtml, redirect } from './http.js';
 
 export function requireStudent(ctx) {
   const user = requireUser(ctx);
@@ -21,6 +22,11 @@ export function listEnrollments(db, userId) {
 }
 
 export function registerEnrollmentRoutes(app) {
+  app.router.get('/enrollments', (ctx) => {
+    if (!ctx.user) { redirect(ctx.res, '/login?next=%2Fenrollments'); return; }
+    const user = requireStudent(ctx);
+    sendHtml(ctx.res, 200, enrollmentsPage({ user, path: ctx.path, enrollments: listEnrollments(ctx.db, user.id) }));
+  });
   app.router.get('/api/enrollments', (ctx) => {
     const user = requireStudent(ctx);
     sendJson(ctx.res, 200, { enrollments: listEnrollments(ctx.db, user.id) });

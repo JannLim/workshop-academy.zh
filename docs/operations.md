@@ -10,11 +10,11 @@
 
 | 位置 | 内容 |
 | --- | --- |
-| `data/academy.sqlite` | 数据库：账号、会话、课程、配置、迁移记录 |
+| `data/academy.sqlite` | 数据库：账号、会话、课程、当前有效报名、配置、迁移记录 |
 | `data/run.json` | 运行记录：进程号、访问地址、维护令牌；仅本机用户可读（0600） |
 | `backups/` | 备份与“恢复前”快照 |
 | `migrations/` | 按编号执行的 SQL 迁移 |
-| `media/` | 示例视频，只能通过限时播放地址读取 |
+| `media/` | 示例视频，读取时同时检查当前学员会话、有效报名、发布状态与限时播放授权 |
 
 `data/`、`backups/` 和数据库文件都不提交到 Git。
 
@@ -82,6 +82,22 @@ npm start          # 用新版本启动
 某个文件失败时，该文件整体回滚，之前成功的文件保留；修正后重新运行即可。
 迁移期间脚本占用 `run.json`，此时 `npm start` 会提示稍后再试。
 
+### 从报名功能之前的旧库升级
+
+旧库缺少 `002-enrollments.sql` 时，新版本会拒绝启动；不要删除数据库或修改 `001-init.sql`。
+先用相同的 `DATA_DIR` 备份，再迁移并启动：
+
+```sh
+DATA_DIR=data-acceptance BACKUP_DIR=backups-acceptance npm run backup
+DATA_DIR=data-acceptance npm run migrate
+DATA_DIR=data-acceptance PORT=3001 npm start
+```
+
+迁移保留原账号编号、用户名、显示名、角色、密码凭据，以及课程全部内容、视频关联、发布状态和时间信息。
+原凭据可继续登录，不会重新初始化示例数据，也不会自动为既有学员报名。
+学员须在课程详情主动报名后才能观看；管理员不具备学员观看资格。
+重复迁移不会改变业务数据。
+
 ## 恢复
 
 ```sh
@@ -106,7 +122,20 @@ DATA_DIR=data-acceptance npm run migrate
 DATA_DIR=data-acceptance PORT=3001 npm start
 ```
 
-然后在 <http://localhost:3001> 核对账号和课程。
+然后在 <http://localhost:3001> 使用原凭据登录，核对账号、课程和“我的报名”。
+快照包含当时有效报名；当时已取消的报名恢复后仍无效，快照之后的报名或取消不会保留。
+退出重登和正常重启不会清除报名，也不会把报名转移给其他账号。
+下架课程仍显示在本人的报名列表中，但不能观看，可以取消报名。
+恢复前副本保留恢复前的报名状态，必要时可按相同流程在隔离目录核对。
+
+可在临时目录运行自动演练，不读取当前 `data/`：
+
+```sh
+node --disable-warning=ExperimentalWarning --test test/db.test.js test/ops.test.js
+```
+
+演练覆盖旧库字段与凭据保留、报名与取消跨重启延续、写入失败回滚、报名快照恢复和既有维护边界。
+
 
 ## 常见问题
 

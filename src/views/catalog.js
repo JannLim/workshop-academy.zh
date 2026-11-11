@@ -46,7 +46,7 @@ export function catalogPage({ user, path, courses }) {
   <div class="hero-copy">
     <p class="eyebrow">学堂在线 · 视频课程</p>
     <h1>边看边做，<br>把想法变成作品。</h1>
-    <p class="lead">挑一门课，跟着视频一步步动手。${user ? '' : '课程目录对所有人开放，登录后即可观看。'}</p>
+    <p class="lead">挑一门课，跟着视频一步步动手。${user ? '' : '课程目录对所有人开放，学员登录并报名后即可观看。'}</p>
     <dl class="hero-stats">
       <div><dt>已发布课程</dt><dd class="mono">${courses.length}</dd></div>
       <div><dt>视频总时长</dt><dd class="mono">${formatClock(totalSeconds)}</dd></div>

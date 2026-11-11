@@ -1,0 +1,111 @@
+✖ 报名页面按身份和状态显示操作，列表保留下架报名 (68.73875ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 152.160792
+
+✖ failing tests:
+
+test at test/enrollment-page.test.js:7:1
+✖ 报名页面按身份和状态显示操作，列表保留下架报名 (68.73875ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /登录后报名/. Input:
+  
+  '<!doctype html>\n' +
+    '<html lang="zh-CN">\n' +
+    '<head>\n' +
+    '<meta charset="utf-8">\n' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1">\n' +
+    '<meta name="color-scheme" content="light">\n' +
+    '<title>Python 入门：写出第一个程序 · 学堂在线</title>\n' +
+    '<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">\n' +
+    '<link rel="stylesheet" href="/assets/css/app.css">\n' +
+    '<script src="/assets/js/app.js" defer></script>\n' +
+    '</head>\n' +
+    '<body data-page="course">\n' +
+    '<a class="skip-link" href="#main">跳到主要内容</a>\n' +
+    '<header class="site-header">\n' +
+    '  <div class="container header-inner">\n' +
+    '    <a class="brand" href="/" aria-label="学堂在线首页"><svg class="logo" viewBox="0 0 13 13" width="26" height="26" aria-hidden="true" focusable="false" shape-rendering="crispEdges">\n' +
+    '  <path fill="#27063D" d="M2 1h10v12H2zM1 2h12v10H1z"/>\n' +
+    '  <path fill="#890FBC" d="M1 0h10v12H1zM0 1h12v10H0z"/>\n' +
+    '  <path fill="#FFFFFF" d="M5 2h1v6H5zM6 3h1v4H6zM7 4h1v2H7z"/>\n' +
+    '  <path fill="#5B0F84" d="M2 9h8v1H2z"/>\n' +
+    '  <path fill="#FFFFFF" d="M2 9h3v1H2z"/>\n' +
+    '</svg><span class="brand-name">学堂在线</span></a>\n' +
+    '    <nav class="site-nav" aria-label="主导航">\n' +
+    '      <a class="nav-link" href="/" aria-current="page"><span class="nav-prefix">课程</span>目录</a>\n' +
+    '      \n' +
+    '    </nav>\n' +
+    '    <div class="header-actions">\n' +
+    '      <a class="btn btn-sm btn-primary" href="/login?next=%2Fcourses%2F1">登录</a>\n' +
+    '    </div>\n' +
+    '  </div>\n' +
+    '</header>\n' +
+    '<main id="main" class="site-main" tabindex="-1">\n' +
+    '<article class="container course-page">\n' +
+    '  <nav class="breadcrumb" aria-label="位置"><a href="/">课程目录</a><span aria-hidden="true">/</span><span aria-current="page">Python 入门：写出第一个程序</span></nav>\n' +
+    '  <header class="course-header">\n' +
+    '    <p class="course-tags"><span class="tag">入门</span><span class="course-code mono">课程 01</span></p>\n' +
+    '    <h1>Python 入门：写出第一个程序</h1>\n' +
+    '    <p class="lead">从变量、条件和循环开始，用一个猜数字小游戏把基础语法串起来。</p>\n' +
+    '  </header>\n' +
+    '  <div class="course-layout">\n' +
+    '    <section class="player-column" aria-label="课程视频">\n' +
+    '      <div class="player block" data-course-id="1" data-state="login">\n' +
+    '        <img class="player-poster" src="/covers/1.svg" alt="" width="640" height="360">\n' +
+    '        <div class="player-overlay"><div class="player-state">\n' +
+    '      <span class="pixel-icon pixel-lock" aria-hidden="true"></span>\n' +
+    '      <p class="player-title">登录后观看视频</p>\n' +
+    '      <p class="player-note">课程介绍对所有人开放</p>\n' +
+    '      <a class="btn btn-primary btn-lg" href="/login?next=%2Fcourses%2F1">去登录</a>\n' +
+    '    </div></div>\n' +
+    '        <video class="player-video" controls playsinline preload="auto" hidden aria-label="Python 入门：写出第一个程序 视频"></video>\n' +
+    '      </div>\n' +
+    '      <p class="player-message" id="player-message" role="status" aria-live="polite"></p>\n' +
+    '    </section>\n' +
+    '    <aside class="course-aside panel" aria-label="课程信息">\n' +
+    '      <dl class="meta-list">\n' +
+    '        <div><dt>讲师</dt><dd><span class="avatar avatar-sm" aria-hidden="true">林</span>林知远</dd></div>\n' +
+    '        <div><dt>难度</dt><dd>入门</dd></div>\n' +
+    '        <div><dt>时长</dt><dd>18 秒</dd></div>\n' +
+    '        <div><dt>更新于</dt><dd class="mono">2026-11-11</dd></div>\n' +
+    '      </dl>\n' +
+    '    </aside>\n' +
+    '    <section class="course-description" aria-labelledby="about-title">\n' +
+    '      <h2 id="about-title">课程介绍</h2>\n' +
+    '      <p>这门课面向从没写过代码的同学。我们先装好 Python，再一步步写出一个能和你对话的猜数字游戏。</p><p>每一节都先演示、再动手：你会认识变量与类型、if 判断、while 循环和函数，并学会读懂报错信息。</p><p>学完后，你能独立写出几十行的小程序，并知道下一步该学什么。</p>\n' +
+    '    </section>\n' +
+    '  </div>\n' +
+    '</article>\n' +
+    '</main>\n' +
+    '<footer class="site-footer">\n' +
+    '  <div class="container footer-inner">\n' +
+    '    <span class="footer-brand"><svg class="logo" viewBox="0 0 13 13" width="26" height="26" aria-hidden="true" focusable="false" shape-rendering="crispEdges">\n' +
+    '  <path fill="#27063D" d="M2 1h10v12H2zM1 2h12v10H1z"/>\n' +
+    '  <path fill="#890FBC" d="M1 0h10v12H1zM0 1h12v10H0z"/>\n' +
+    '  <path fill="#FFFFFF" d="M5 2h1v6H5zM6 3h1v4H6zM7 4h1v2H7z"/>\n' +
+    '  <path fill="#5B0F84" d="M2 9h8v1H2z"/>\n' +
+    '  <path fill="#FFFFFF" d="M2 9h3v1H2z"/>\n' +
+    '</svg><span>学堂在线</span></span>\n' +
+    '    <span class="footer-note">在本机运行的课程示例项目 · 数据只保存在你的电脑上</span>\n' +
+    '  </div>\n' +
+    '</footer>\n' +
+    '<p class="sr-only" id="global-status" role="status" aria-live="polite"></p>\n' +
+    '</body>\n' +
+    '</html>'
+  
+      at TestContext.<anonymous> (file:///Users/linjuanjuan/Study/workshop-academy.zh/test/enrollment-page.test.js:9:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '<!doctype html>\n<html lang="zh-CN">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<meta name="color-scheme" content="light">\n<title>Python 入门：写出第一个程序 · 学堂在线</title>\n<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">\n<link rel="stylesheet" href="/assets/css/app.css">\n<script src="/assets/js/app.js" defer></script>\n</head>\n<body data-page="course">\n<a class="skip-link" href="#main">跳到主要内容</a>\n<header class="site-header">\n  <div class="container header-inner">\n    <a class="brand" href="/" aria-label="学堂在线首页"><svg class="logo" viewBox="0 0 13 13" width="26" height="26" aria-hidden="true" focusable="false" shape-rendering="crispEdges">\n  <path fill="#27063D" d="M2 1h10v12H2zM1 2h12v10H1z"/>\n  <path fill="#890FBC" d="M1 0h10v12H1zM0 1h12v10H0z"/>\n  <path fill="#FFFFFF" d="M5 2h1v6H5zM6 3h1v4H6zM7 4h1v2H7z"/>\n  <path fill="#5B0F84" d="M2 9h8v1H2z"/>\n  <path fill="#FFFFFF" d="M2 9h3v1H2z"/>\n</svg><span class="brand-name">学堂在线</span></a>\n    <nav class="site-nav" aria-label="主导航">\n      <a class="nav-link" href="/" aria-current="page"><span class="nav-prefix">课程</span>目录</a>\n      \n    </nav>\n    <div class="header-actions">\n      <a class="btn btn-sm btn-primary" href="/login?next=%2Fcourses%2F1">登录</a>\n    </div>\n  </div>\n</header>\n<main id="main" class="site-main" tabindex="-1">\n<article class="container course-page">\n  <nav class="breadcrumb" aria-label="位置"><a href="/">课程目录</a><span aria-hidden="true">/</span><span aria-current="page">Python 入门：写出第一个程序</span></nav>\n  <header class="course-header">\n    <p class="course-tags"><span class="tag">入门</span><span class="course-code mono">课程 01</span></p>\n    <h1>Python 入门：写出第一个程序</h1>\n    <p class="lead">从变量、条件和循环开始，用一个猜数字小游戏把基础语法串起来。</p>\n  </header>\n  <div class="course-layout">\n    <section class="player-column" aria-label="课程视频">\n      <div class="player block" data-course-id="1" data-state="login">\n        <img class="player-poster" src="/covers/1.svg" alt="" width="640" height="360">\n        <div class="player-overlay"><div class="player-state">\n      <span class="pixel-icon pixel-lock" aria-hidden="true"></span>\n      <p class="player-title">登录后观看视频</p>\n      <p class="player-note">课程介绍对所有人开放</p>\n      <a class="btn btn-primary btn-lg" href="/login?next=%2Fcourses%2F1">去登录</a>\n    </div></div>\n        <video class="player-video" controls playsinline preload="auto" hidden aria-label="Python 入门：写出第一个程序 视频"></video>\n      </div>\n      <p class="player-message" id="player-message" role="status" aria-live="polite"></p>\n    </section>\n    <aside class="course-aside panel" aria-label="课程信息">\n      <dl class="meta-list">\n        <div><dt>讲师</dt><dd><span class="avatar avatar-sm" aria-hidden="true">林</span>林知远</dd></div>\n        <div><dt>难度</dt><dd>入门</dd></div>\n        <div><dt>时长</dt><dd>18 秒</dd></div>\n        <div><dt>更新于</dt><dd class="mono">2026-11-11</dd></div>\n      </dl>\n    </aside>\n    <section class="course-description" aria-labelledby="about-title">\n      <h2 id="about-title">课程介绍</h2>\n      <p>这门课面向从没写过代码的同学。我们先装好 Python，再一步步写出一个能和你对话的猜数字游戏。</p><p>每一节都先演示、再动手：你会认识变量与类型、if 判断、while 循环和函数，并学会读懂报错信息。</p><p>学完后，你能独立写出几十行的小程序，并知道下一步该学什么。</p>\n    </section>\n  </div>\n</article>\n</main>\n<footer class="site-footer">\n  <div class="container footer-inner">\n    <span class="footer-brand"><svg class="logo" viewBox="0 0 13 13" width="26" height="26" aria-hidden="true" focusable="false" shape-rendering="crispEdges">\n  <path fill="#27063D" d="M2 1h10v12H2zM1 2h12v10H1z"/>\n  <path fill="#890FBC" d="M1 0h10v12H1zM0 1h12v10H0z"/>\n  <path fill="#FFFFFF" d="M5 2h1v6H5zM6 3h1v4H6zM7 4h1v2H7z"/>\n  <path fill="#5B0F84" d="M2 9h8v1H2z"/>\n  <path fill="#FFFFFF" d="M2 9h3v1H2z"/>\n</svg><span>学堂在线</span></span>\n    <span class="footer-note">在本机运行的课程示例项目 · 数据只保存在你的电脑上</span>\n  </div>\n</footer>\n<p class="sr-only" id="global-status" role="status" aria-live="polite"></p>\n</body>\n</html>',
+    expected: /登录后报名/,
+    operator: 'match',
+    diff: 'simple'
+  }

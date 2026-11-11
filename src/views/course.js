@@ -13,10 +13,13 @@ function playerOverlay(course, watch, path) {
   if (watch.state === 'login') {
     return html`<div class="player-state">
       <span class="pixel-icon pixel-lock" aria-hidden="true"></span>
-      <p class="player-title">登录后观看视频</p>
+      <p class="player-title">登录后报名</p>
       <p class="player-note">课程介绍对所有人开放</p>
       <a class="btn btn-primary btn-lg" href="${loginHref(path)}">去登录</a>
     </div>`;
+  }
+  if (watch.state === 'enroll') {
+    return html`<div class="player-state"><p class="player-title">报名后即可观看</p><p class="player-note">不限人数，报名立即生效</p><button class="btn btn-primary btn-lg" type="button" data-action="enroll">立即报名</button></div>`;
   }
   if (watch.state === 'ready') {
     return html`<div class="player-state">

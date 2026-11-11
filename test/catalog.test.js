@@ -34,14 +34,14 @@ test('目录页与详情页渲染课程信息，草稿返回 HTML 404 页面', a
   assert.match(catalog, /href="\/courses\/3"/);
   assert.doesNotMatch(catalog, /SQLite 数据建模实践/);
   assert.match(catalog, /src="\/covers\/1\.svg"/);
-  assert.match(catalog, /登录后即可观看/);
+  assert.match(catalog, /学员登录并报名后即可观看/);
 
   const page = await fetch(`${app.url}/courses/1`);
   assert.equal(page.status, 200);
   const html = await page.text();
   assert.match(html, /<h1>Python 入门：写出第一个程序<\/h1>/);
   assert.match(html, /林知远/);
-  assert.match(html, /登录后观看视频/);
+  assert.match(html, /登录后报名/);
   assert.match(html, /href="\/login\?next=%2Fcourses%2F1">去登录/);
 
   const draft = await fetch(`${app.url}/courses/4`);
@@ -55,7 +55,7 @@ test('页面内容经过转义', async (t) => {
   app.db.prepare('UPDATE courses SET title = ?, summary = ? WHERE id = 1').run('<script>alert(1)</script>', '"><img src=x onerror=alert(1)>');
   const c = client(app.url);
   await login(c);
-  assert.doesNotMatch(await (await c.get('/')).text(), /登录后即可观看/, '已登录时不再提示登录');
+  assert.doesNotMatch(await (await c.get('/')).text(), /学员登录并报名后即可观看/, '已登录时不再提示登录');
   for (const path of ['/', '/courses/1']) {
     const html = await (await c.get(path)).text();
     assert.doesNotMatch(html, /<script>alert/);
