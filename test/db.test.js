@@ -47,6 +47,23 @@ test('新数据库执行全部迁移并写入示例数据，重复执行不改�
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM users').get().n, 3);
 });
 
+test('报名迁移创建账号与课程的唯一关系', (t) => {
+  const db = openDatabase(databaseFile(tempDir(t)));
+  t.after(() => db.close());
+  applyMigrations(db);
+  seedIfNeeded(db);
+
+  const insert = db.prepare('INSERT INTO enrollments (user_id, course_id, created_at) VALUES (?, ?, ?)');
+  insert.run(1, 1, 1000);
+  assert.throws(() => insert.run(1, 1, 2000), /UNIQUE/);
+  insert.run(2, 1, 3000);
+  assert.deepEqual(
+    db.prepare('SELECT user_id, course_id, created_at FROM enrollments ORDER BY id').all()
+      .map((row) => [row.user_id, row.course_id, row.created_at]),
+    [[1, 1, 1000], [2, 1, 3000]],
+  );
+});
+
 test('迁移状态列出待执行文件，执行失败的文件整体回滚', (t) => {
   const migrations = copyMigrations(t);
   const db = openDatabase(databaseFile(tempDir(t)));
